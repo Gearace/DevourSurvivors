@@ -4,9 +4,10 @@ extends Node
 
 var _player: CharacterBody2D
 var _joystick: Control
-var _gesture_detector: GDScript
+var _gesture_detector: Object
 var _wave_spawner: Node
 var _pool: Node2D
+var _skill_system: Node
 var _captured_this_wave: int = 0
 
 func _ready() -> void:
@@ -15,8 +16,9 @@ func _ready() -> void:
     _joystick = get_node("Joystick") as Control
     _wave_spawner = get_node("WaveSpawner")
     _pool = get_node("ObjectPool")
+    _skill_system = get_node("SkillSystem")
     
-    # 连接摇杆信号到玩家
+    # 连接摇杆信号
     if _player and _joystick:
         _player.connect_joystick(_joystick)
         print("[MainGame] 摇杆已连接到玩家")
@@ -34,21 +36,16 @@ func _ready() -> void:
     )
     
     # 连接吞噬信号
-    _player.connect("player_captured_enemy", func(type: String, value: float):
+    _player.player_captured_enemy.connect(func(type: String, value: float):
         _captured_this_wave += 1
         if _wave_spawner:
             _wave_spawner.on_enemy_captured()
     )
     
-    # 连接敌人死亡信号到对象池回收
-    if _wave_spawner:
-        # 敌人死亡后由对象池回收
-        pass
-    
-    # 设置游戏状态为 PLAYING
+    # 设置游戏状态
     var gm = get_node_or_null("GameManager")
     if gm:
-        gm.set_state(1)  # GameState.PLAYING
+        gm.set_state(1)
         print("[MainGame] 游戏状态: PLAYING")
     
     # 开始第一波
@@ -67,7 +64,7 @@ func _process(delta: float) -> void:
                 enemy.set_player_reference(_player)
 
 func _unhandled_input(event: InputEvent) -> void:
-    """处理全局输入 (用于编辑器鼠标测试)"""
+    """处理全局输入"""
     if _gesture_detector == null:
         return
     
@@ -88,7 +85,7 @@ func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
         var gm = get_node_or_null("GameManager")
         if gm:
-            if gm.current_state == 1:  # PLAYING
-                gm.set_state(2)  # PAUSED
+            if gm.current_state == 1:
+                gm.set_state(2)
             elif gm.current_state == 2:
                 gm.set_state(1)

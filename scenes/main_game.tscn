@@ -1,12 +1,13 @@
-[gd_scene load_steps=8 format=3 uid="uid://main_game_001"]
+[gd_scene load_steps=9 format=3 uid="uid://main_game_001"]
 
 [ext_resource type="Script" path="res://scripts/main_game_controller.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/mobile_adapter.gd" id="2_mobile"]
 [ext_resource type="Script" path="res://scripts/event_bus.gd" id="3_event"]
 [ext_resource type="Script" path="res://scripts/object_pool.gd" id="4_pool"]
 [ext_resource type="Script" path="res://scripts/wave_spawner.gd" id="5_wave"]
-[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="6_player"]
-[ext_resource type="PackedScene" path="res://scenes/joystick.tscn" id="7_joystick"]
+[ext_resource type="Script" path="res://scripts/skill_system.gd" id="6_skill"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="7_player"]
+[ext_resource type="PackedScene" path="res://scenes/joystick.tscn" id="8_joystick"]
 
 [node name="MainGame" type="Node"]
 script = ExtResource("1_main")
@@ -14,10 +15,10 @@ script = ExtResource("1_main")
 [node name="EventBus" type="Node" parent="."]
 script = ExtResource("3_event")
 
-[node name="Player" parent="." instance=ExtResource("6_player")]
+[node name="Player" parent="." instance=ExtResource("7_player")]
 position = Vector2(360, 640)
 
-[node name="Joystick" parent="." instance=ExtResource("7_joystick")]
+[node name="Joystick" parent="." instance=ExtResource("8_joystick")]
 
 [node name="ObjectPool" type="Node2D" parent="."]
 script = ExtResource("4_pool")
@@ -28,6 +29,9 @@ max_size = 200
 [node name="WaveSpawner" type="Node" parent="."]
 script = ExtResource("5_wave")
 pool_node_path = "ObjectPool"
+
+[node name="SkillSystem" type="Node" parent="."]
+script = ExtResource("6_skill")
 
 [node name="World2D" type="World2D" parent="."]
 
