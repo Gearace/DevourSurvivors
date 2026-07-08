@@ -923,3 +923,45 @@ project/
 ---
 
 *文档结束*
+
+
+---
+
+## 十四、开发进度追踪
+
+> **最后更新**: 2026-07-08
+
+### 里程碑状态
+
+| 里程碑 | 目标 | 状态 | 完成日期 | 提交哈希 |
+|---|---|---|---|---|
+| **M0** | 环境搭建 — 项目骨架 + GameManager + EventBus | ✅ 已完成 | 2026-07-08 | d71d646 |
+| **M1** | 操作原型 — 摇杆 + 手势识别 + 玩家移动 + 吞噬判定 | ✅ 已完成 | 2026-07-08 | dcedca4 |
+| **M2** | 敌人 AI — 敌人生成 + 逃跑行为 + 波次系统 | ✅ 已完成 | 2026-07-08 |  5ae5cb |
+| **M3** | 技能系统 — 11个技能 + 冷却管理 + 视觉效果 | ✅ 已完成 | 2026-07-08 | 58de565 |
+| **M4a** | 卡牌系统基础 — 升级弹窗 + 抽卡算法 + 牌组管理 | 🔲 待开发 | — | — |
+| **M4b** | 融合进化系统 — 融合检测 + 触发 + 效果 | 🔲 待开发 | — | — |
+| **M4c** | 构筑验证与平衡 — Build验证 + 数值调优 | 🔲 待开发 | — | — |
+| **M5** | 内容填充 — 多类型敌人 + 技能池 + Boss + 10波 | 🔲 待开发 | — | — |
+| **M6** | 打磨上线 — 特效 + 音效 + 性能优化 + 导出 | 🔲 待开发 | — | — |
+
+### 当前阶段
+
+**M3 已完成，准备进入 M4a — 卡牌系统基础**
+
+### 累计交付文件统计
+
+| 类别 | 数量 | 说明 |
+|---|---|---|
+| 脚本 (.gd) | 14 | game_manager, gesture_detector, joystick, player_controller, enemy_base, enemy_ai, wave_spawner, object_pool, skill_data, skill_system, skill_effect, main_game_controller, mobile_adapter, event_bus |
+| 场景 (.tscn) | 5 | main_game, player, joystick, enemy_base, upgrade_popup(占位) |
+| 配置 | 3 | project.godot, export_presets.cfg, .gitignore |
+| 文档 | 1 | GDD_吞噬幸存者_v1.0.md |
+| Git 提交 | 4 | M0/M1/M2/M3 各一次 |
+
+### 下一步
+
+1. **M4a**: 生成卡牌数据库 + 升级弹窗 UI + 抽卡算法
+2. 在 Godot 中验证 M0-M3 的整体运行效果
+3. 确认手势识别在真机上的手感参数是否需要调整
+
