@@ -1,0 +1,8 @@
+# Godot 编辑器缓存 (不要提交)
+.godot/
+
+# 忽略 .uid 文件 (Godot 4 自动生成)
+*.uid
+
+# 导出模板
+export_presets.cfg
