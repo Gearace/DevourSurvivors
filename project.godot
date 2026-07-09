@@ -15,6 +15,11 @@ run/main_scene="res://scenes/main_game.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
 config/package_version="1.0.0"
 
+[autoload]
+
+GameManager="*res://scripts/game_manager.gd"
+EventBus="*res://scripts/event_bus.gd"
+
 [display]
 
 window/size/viewport_width=720
@@ -49,8 +54,3 @@ move_right={
 
 renderer/rendering_method="mobile"
 environment/defaults/default_clear_color=Color(0.08, 0.08, 0.12, 1)
-
-
-[autoload]
-GameManager="*res://scripts/game_manager.gd"
-EventBus="*res://scripts/event_bus.gd"
