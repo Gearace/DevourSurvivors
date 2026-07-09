@@ -128,6 +128,7 @@ func add_card_to_deck(card_id: String) -> bool:
 	else:
 		print("[GameManager] 牌组已满! (", deck_capacity, ")")
 		return false
+
 func remove_card_from_deck(card_id: String) -> void:
 	if card_id in player_deck:
 		player_deck.erase(card_id)
@@ -208,18 +209,28 @@ func save_game() -> void:
 		"wave": current_wave,
 		"score": player_stats.score,
 	}
-	var error = FileAccess.store_json(save_data, "user://save_data.json")
-	if error == OK:
+	var json_str = JSON.stringify(save_data)
+	var file = FileAccess.open("user://save_data.json", FileAccess.WRITE)
+	if file:
+		file.store_string(json_str)
+		file.close()
 		print("[GameManager] 游戏已保存")
 	else:
-		print("[GameManager] 保存失败: ", error)
+		print("[GameManager] 保存失败")
 
 func load_game() -> bool:
 	if not FileAccess.file_exists("user://save_data.json"):
 		return false
 	
-	var data = FileAccess.get_json_as_text("user://save_data.json")
-	var save_data: Dictionary = JSON.parse_string(data)
+	var file = FileAccess.open("user://save_data.json", FileAccess.READ)
+	if not file:
+		return false
+	var json_str = file.get_as_text()
+	file.close()
+	var parse_result = JSON.parse_string(json_str)
+	if typeof(parse_result) != TYPE_DICTIONARY:
+		return false
+	var save_data = parse_result
 	if save_data.is_empty():
 		return false
 	

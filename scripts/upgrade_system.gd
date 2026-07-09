@@ -16,7 +16,7 @@ var last_rarity: String = ""
 var current_level: int = 1
 var current_wave: int = 1
 
-var rarity_rank := {
+var rarity_rank: Dictionary = {
     "Common": 0,
     "Uncommon": 1,
     "Legendary": 2,
@@ -75,7 +75,7 @@ func _is_relic_unlocked(card: Dictionary) -> bool:
 
 func _detect_build_type() -> String:
     var deck = GameManager.player_deck
-    var core_counts := {"Core": 0, "Component": 0, "Resonance": 0}
+    var core_counts: Dictionary = {"Core": 0, "Component": 0, "Resonance": 0}
     for card_id in deck:
         var card = CardDatabase.find_card_by_id(card_id)
         if card.is_empty():
@@ -228,10 +228,14 @@ func reset_for_new_run() -> void:
 func debug_print_pool() -> void:
     var pool = _get_card_pool()
     print("[UpgradeSystem] 可用卡牌数: ", pool.size())
-    var counts := {"Core": 0, "Component": 0, "Resonance": 0, "Relic": 0}
+    var counts: Dictionary = {"Core": 0, "Component": 0, "Resonance": 0, "Relic": 0}
     for card in pool:
         if card.category in counts:
             counts[card.category] += 1
     print("[UpgradeSystem] 类别分布: ", counts)
     print("[UpgradeSystem] 当前保底计数: ", pity_counter)
     print("[UpgradeSystem] 当前等级权重: ", CardDatabase.get_rarity_weights(current_level))
+
+
+
+

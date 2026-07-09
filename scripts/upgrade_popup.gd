@@ -13,7 +13,7 @@ var overlay: ColorRect
 var current_cards: Array[Dictionary] = []
 var selected_card_idx: int = -1
 
-var rarity_colors := {
+var rarity_colors: Dictionary = {
     "Common": Color(0.6, 0.8, 0.6, 1.0),
     "Uncommon": Color(0.4, 0.6, 1.0, 1.0),
     "Legendary": Color(1.0, 0.7, 0.2, 1.0),
@@ -51,7 +51,7 @@ func show_upgrade(cards: Array[Dictionary]) -> void:
 func _create_card_ui(card: Dictionary, idx: int) -> Control:
     var container = VBoxContainer.new()
     container.custom_minimum_size = Vector2(180, 220)
-    container.theme_override_constants/separation = 8
+    container.set("theme_override_constants/separation", 8)
 
     var style = StyleBoxFlat.new()
     style.bg_color = Color(0.15, 0.15, 0.2, 1.0)
@@ -60,7 +60,7 @@ func _create_card_ui(card: Dictionary, idx: int) -> Control:
     style.corner_radius_bottom_left = 6
     style.corner_radius_bottom_right = 6
     style.border_width_left = 4
-    var border_color = rarity_colors.get(card.rarity, Color.WHITE)
+    var border_color = rarity_colors.get(card.get("rarity", "Common"), Color.WHITE)
     style.border_color = border_color
     style.expand_margins_left = 2
     style.expand_margins_right = 2
@@ -69,7 +69,7 @@ func _create_card_ui(card: Dictionary, idx: int) -> Control:
     container.add_theme_stylebox_override("panel", style)
 
     var name_label = Label.new()
-    name_label.text = card.name
+    name_label.text = card.get("name", "Unknown")
     name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     name_label.custom_minimum_size = Vector2(160, 40)
@@ -78,7 +78,7 @@ func _create_card_ui(card: Dictionary, idx: int) -> Control:
     container.add_child(name_label)
 
     var cat_label = Label.new()
-    cat_label.text = card.category + " " + card.rarity
+    cat_label.text = card.get("category", "") + " " + card.get("rarity", "")
     cat_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     cat_label.font_size = 12
     cat_label.self_modulate = Color(0.7, 0.7, 0.7, 1.0)
@@ -88,7 +88,7 @@ func _create_card_ui(card: Dictionary, idx: int) -> Control:
     container.add_child(sep)
 
     var desc_label = Label.new()
-    desc_label.text = card.description
+    desc_label.text = card.get("description", "")
     desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     desc_label.custom_minimum_size = Vector2(160, 60)
@@ -97,7 +97,7 @@ func _create_card_ui(card: Dictionary, idx: int) -> Control:
     container.add_child(desc_label)
 
     var rarity_label = Label.new()
-    rarity_label.text = _get_rarity_text(card.rarity)
+    rarity_label.text = _get_rarity_text(card.get("rarity", "Common"))
     rarity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     rarity_label.font_size = 11
     rarity_label.self_modulate = border_color
@@ -105,11 +105,10 @@ func _create_card_ui(card: Dictionary, idx: int) -> Control:
 
     container.mouse_filter = MOUSE_FILTER_STOP
     var sel_idx = idx
-    var sel_style = style
-    var sel_border = border_color
+    var border_copy = border_color
     container.gui_input.connect(func(event):
         if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-            _select_card(sel_idx, container, sel_style, sel_border)
+            _select_card(idx, container, style, border_copy)
     )
 
     container.set_meta("card_index", idx)
@@ -119,7 +118,7 @@ func _create_card_ui(card: Dictionary, idx: int) -> Control:
 func _create_empty_card_slot() -> Control:
     var container = VBoxContainer.new()
     container.custom_minimum_size = Vector2(180, 220)
-    container.theme_override_constants/separation = 8
+    container.set("theme_override_constants/separation", 8)
     var style = StyleBoxFlat.new()
     style.bg_color = Color(0.1, 0.1, 0.15, 0.5)
     style.corner_radius_top_left = 6
@@ -137,13 +136,12 @@ func _create_empty_card_slot() -> Control:
     container.add_child(label)
     return container
 
-func _select_card(idx: int, container: Control, orig_style: StyleBoxFlat, orig_border: Color) -> void:
+func _select_card(idx: int, container: Control, _orig_style: StyleBoxFlat, orig_border: Color) -> void:
     for child in card_grid.get_children():
         if child.has_meta("highlighted") and child.get_meta("highlighted"):
-            if child.get_theme_stylebox("panel") is StyleBoxFlat:
-                child.get_theme_stylebox("panel").border_color = orig_border
             child.set_meta("highlighted", false)
     container.set_meta("highlighted", true)
+    container.set_meta("orig_border", orig_border)
     var s = container.get_theme_stylebox("panel")
     if s is StyleBoxFlat:
         s.border_color = Color(1.0, 1.0, 1.0, 1.0)
@@ -154,7 +152,7 @@ func _on_confirm_pressed() -> void:
     if selected_card_idx < 0 or selected_card_idx >= current_cards.size():
         return
     var card = current_cards[selected_card_idx]
-    print("[UpgradePopup] 确认选择: ", card.name)
+    print("[UpgradePopup] 确认选择: ", card.get("name", ""))
     UpgradeSystem.select_card(card)
     _animate_panel_out()
 
@@ -173,3 +171,5 @@ func _get_rarity_text(rarity: String) -> String:
 
 func hide_upgrade() -> void:
     visible = false
+
+

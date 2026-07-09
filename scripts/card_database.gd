@@ -2,7 +2,7 @@ extends Resource
 
 ## card_database.gd
 ## 卡牌数据库 — 全部43张被动卡牌的定义
-## 类别: Core/Core(核心)/Component(组件)/Resonance(共鸣)/Relic(遗物)
+## 类别: Core(核心)/Component(组件)/Resonance(共鸣)/Relic(遗物)
 ## 稀有度: Common(普通)/Uncommon(稀有)/Legendary(传说)/Relic(遗物)
 
 class_name CardDatabase
@@ -35,23 +35,23 @@ static func get_component_cards() -> Array[Dictionary]:
 		{"id": "vampire_fang", "name": "吸血之牙", "category": "Component", "rarity": "Uncommon", "description": "每次吞噬回复1HP", "stats": {"hp_regen_per_capture": 1}},
 		{"id": "crushing_force", "name": "粉碎之力", "category": "Component", "rarity": "Common", "description": "吞噬重装怪额外+50%体型", "stats": {"heavy_capture_bonus": 0.5}},
 		{"id": "ghost_step", "name": "幽灵步", "category": "Component", "rarity": "Uncommon", "description": "吞噬后0.5s无敌帧", "stats": {"invincible_duration": 0.5, "invincible_on_capture": true}},
-		{"id": "multi_capture", "name": "多重吞噬", "category": "Component", "rarity": "Legendary", "description": "可同时吞噬最多3个敌人", "stats": {"max_simultaneous_captures": 3}},
-		{"id": "capture_accelerate", "name": "吞噬加速", "category": "Component", "rarity": "Common", "description": "吞噬动画速度+30%", "stats": {"capture_animation_speed": 0.3}},
-		{"id": "energy_flow_back", "name": "能量回流", "category": "Component", "rarity": "Uncommon", "description": "技能释放后返还30%能量", "stats": {"energy_refund_on_cast": 0.3}},
-		{"id": "extreme_squeeze", "name": "极限压榨", "category": "Component", "rarity": "Legendary", "description": "濒血(HP<20%)时吞噬收益+50%", "stats": {"low_hp_threshold": 0.2, "low_hp_capture_bonus": 0.5}},
-		{"id": "perpetual_engine", "name": "永动引擎", "category": "Component", "rarity": "Relic", "description": "被动获得能量恢复(每10s+1)", "stats": {"passive_energy_interval": 10, "passive_energy_amount": 1}}
+		{"id": "multi_capture", "name": "多重吞噬", "category": "Component", "rarity": "Uncommon", "description": "可同时吞噬最多3个敌人", "stats": {"max_simultaneous_captures": 3}},
+		{"id": "capture_accelerate", "name": "吞噬加速", "category": "Component", "rarity": "Common", "description": "低血量时吞噬收益+30%", "stats": {"low_hp_capture_bonus": 0.3, "low_hp_threshold": 0.2}},
+		{"id": "energy_flow_back", "name": "能量回流", "category": "Component", "rarity": "Uncommon", "description": "技能未命中时返还50%能量", "stats": {"energy_refund_on_miss": 0.5}},
+		{"id": "extreme_squeeze", "name": "极限压榨", "category": "Component", "rarity": "Common", "description": "血量低于20%时攻击+50%", "stats": {"low_hp_attack_bonus": 0.5, "low_hp_threshold": 0.2}},
+		{"id": "perpetual_engine", "name": "永动引擎", "category": "Component", "rarity": "Uncommon", "description": "每秒自动恢复1点能量", "stats": {"energy_regen_per_second": 1}}
 	]
 
 # ========== 共鸣卡 (12张) ==========
 static func get_resonance_cards() -> Array[Dictionary]:
 	return [
-		{"id": "shadow_resonance", "name": "暗影共鸣", "category": "Resonance", "rarity": "Uncommon", "description": "有影分身时，分身数量+1", "stats": {"resonance_check": "shadow_clone", "bonus_clone_count": 1}, "special": "当持有影分身专家时，影分身数量+1"},
-		{"id": "black_hole_resonance", "name": "黑洞共鸣", "category": "Resonance", "rarity": "Uncommon", "description": "有黑洞体质时，引力半径+50%", "stats": {"resonance_check": "black_hole_body", "gravity_radius_bonus": 0.5}, "special": "当持有黑洞体质时，黑洞体质光环半径+50%"},
-		{"id": "capture_synergy", "name": "吞噬连携", "category": "Resonance", "rarity": "Uncommon", "description": "持有>=3张组件时，主动技能CD-10%", "stats": {"component_threshold": 3, "skill_cd_bonus": 0.1}, "special": "当牌组中组件卡>=3张时，所有主动技能CD减少10%"},
-		{"id": "mirror_resonance", "name": "镜像共鸣", "category": "Resonance", "rarity": "Uncommon", "description": "有镜像反射时，反弹伤害翻倍", "stats": {"resonance_check": "mirror_reflect", "reflect_damage_multiplier": 2}, "special": "当持有镜像反射时，反弹伤害x2"},
-		{"id": "split_resonance", "name": "分裂共鸣", "category": "Resonance", "rarity": "Uncommon", "description": "有分裂基因时，分裂小兵体型+50%", "stats": {"resonance_check": "split_gene", "split_size_bonus": 0.5}, "special": "当持有分裂基因时，分裂出的小兵体型+50%"},
-		{"id": "hunger_resonance", "name": "饥饿共鸣", "category": "Resonance", "rarity": "Common", "description": "每吞噬10个敌人，获得1层临时攻击力", "stats": {"capture_threshold": 10, "attack_bonus_per_stack": 1}, "special": "每吞噬10个敌人获得1层临时攻击力(持续10s)"},
-		{"id": "evolution_resonance", "name": "进化共鸣", "category": "Resonance", "rarity": "Legendary", "description": "体型>=Lv.15时，所有属性+10%", "stats": {"level_threshold": 15, "all_stats_bonus": 0.1}, "special": "当玩家等级>=15时，所有属性提升10%"},
+		{"id": "shadow_resonance", "name": "暗影共鸣", "category": "Resonance", "rarity": "Uncommon", "description": "有影分身专家时，分身持续时间+50%", "stats": {"resonance_check": "shadow_clone_expert", "clone_duration_bonus": 0.5}, "special": "当持有影分身专家时，分身持续时间延长50%"},
+		{"id": "black_hole_resonance", "name": "黑洞共鸣", "category": "Resonance", "rarity": "Uncommon", "description": "有黑洞体质时，减速效果提升至-50%", "stats": {"resonance_check": "black_hole_body", "enhanced_slow_factor": 0.5}, "special": "当持有黑洞体质时，减速效果从30%提升至50%"},
+		{"id": "capture_synergy", "name": "吞噬协同", "category": "Resonance", "rarity": "Uncommon", "description": "吞噬范围每增加10px，吞噬收益+5%", "stats": {"range_capture_synergy": 0.05, "range_interval": 10}, "special": "吞噬范围每10px转化为5%吞噬收益加成"},
+		{"id": "mirror_resonance", "name": "镜像共鸣", "category": "Resonance", "rarity": "Legendary", "description": "有镜像反射时，反弹伤害翻倍", "stats": {"resonance_check": "mirror_reflect", "doubled_reflect_damage": true}, "special": "当持有镜像反射时，反弹伤害变为200%"},
+		{"id": "split_resonance", "name": "分裂共鸣", "category": "Resonance", "rarity": "Uncommon", "description": "有分裂基因时，分裂体继承本体30%属性", "stats": {"resonance_check": "split_gene", "split_inherit_percentage": 0.3}, "special": "当持有分裂基因时，分裂出的小兵继承本体30%属性"},
+		{"id": "hunger_resonance", "name": "饥饿共鸣", "category": "Resonance", "rarity": "Uncommon", "description": "有贪婪之口时，吞噬收益额外+15%", "stats": {"resonance_check": "greedy_mouth", "extra_bonus": 0.15}, "special": "当持有贪婪之口时，吞噬收益额外增加15%"},
+		{"id": "evolution_resonance", "name": "进化共鸣", "category": "Resonance", "rarity": "Uncommon", "description": "有极速进化时，进化间隔减少至3个", "stats": {"resonance_check": "rapid_evolution", "reduced_interval": 3}, "special": "当持有极速进化时，体型增长间隔从5减少到3"},
 		{"id": "energy_resonance", "name": "能量共鸣", "category": "Resonance", "rarity": "Uncommon", "description": "有能量虹吸时，能量恢复速度+50%", "stats": {"resonance_check": "energy_siphon", "energy_regen_bonus": 0.5}, "special": "当持有能量虹吸时，能量自然恢复速度+50%"},
 		{"id": "undying_resonance", "name": "不死共鸣", "category": "Resonance", "rarity": "Legendary", "description": "有不死鸟之血时，复活后体型+20%", "stats": {"resonance_check": "phoenix-blood", "post_revive_size_bonus": 0.2}, "special": "当持有不死鸟之血且触发复活时，复活后体型+20%"},
 		{"id": "extreme_resonance", "name": "极限共鸣", "category": "Resonance", "rarity": "Uncommon", "description": "有极限压榨时，濒血阈值提升至30%", "stats": {"resonance_check": "extreme_squeeze", "new_low_hp_threshold": 0.3}, "special": "当持有极限压榨时，濒血阈值从20%提升到30%"},
@@ -99,30 +99,32 @@ static func get_cards_by_rarity(rarity: String) -> Array[Dictionary]:
 # ========== 稀有度权重 (用于抽卡) ==========
 # 随着等级提升，高稀有度概率增加
 static func get_rarity_weights(level: int) -> Dictionary:
-	var common_weight := max(0.30, 0.70 - level * 0.02)
-	var uncommon_weight := 0.25 + level * 0.01
-	var legendary_weight := clamp(0.02 + level * 0.005, 0.02, 0.10)
-	var relic_weight := clamp(0.01 + level * 0.003, 0.01, 0.05)
-	return {
+	var common_weight: float = max(0.30, 0.70 - level * 0.02)
+	var uncommon_weight: float = 0.25 + level * 0.01
+	var legendary_weight: float = clamp(0.02 + level * 0.005, 0.02, 0.10)
+	var relic_weight: float = clamp(0.01 + level * 0.003, 0.01, 0.05)
+	var weights: Dictionary = {
 		"Common": common_weight,
 		"Uncommon": uncommon_weight,
 		"Legendary": legendary_weight,
 		"Relic": relic_weight,
 	}
+	return weights
 
 # ========== 通过ID查找卡牌 ==========
 static func find_card_by_id(card_id: String) -> Dictionary:
 	for card in get_all_cards():
-		if card.id == card_id:
+		if card.get("id", "") == card_id:
 			return card
 	return {}
 
 # ========== 获取卡牌数量统计 ==========
 static func get_card_counts() -> Dictionary:
-	var counts := {"Core": 0, "Component": 0, "Resonance": 0, "Relic": 0}
+	var counts: Dictionary = {"Core": 0, "Component": 0, "Resonance": 0, "Relic": 0}
 	for card in get_all_cards():
-		var cat = card.category
+		var cat: String = card.get("category", "")
 		if cat in counts:
-			counts[cat] += 1
-	counts.total = get_all_cards().size()
+			counts[cat] = counts[cat] + 1
+	var total: int = get_all_cards().size()
+	counts["total"] = total
 	return counts
