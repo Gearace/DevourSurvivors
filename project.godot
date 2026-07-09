@@ -19,6 +19,8 @@ config/package_version="1.0.0"
 
 GameManager="*res://scripts/game_manager.gd"
 EventBus="*res://scripts/event_bus.gd"
+  UpgradeSystem="*res://scripts/upgrade_system.gd"
+  UpgradePopup="*res://scripts/upgrade_popup.gd"
 
 [display]
 
