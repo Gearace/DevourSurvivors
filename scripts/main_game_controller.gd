@@ -52,7 +52,7 @@ func _ready() -> void:
     
     # 连接升级信号
     if _upgrade_popup:
-        UpgradePopup.card_confirmed.connect(func(card):
+        _upgrade_popup.card_confirmed.connect(func(card):
             if _upgrade_popup:
                 _upgrade_popup.hide_upgrade()
             EventBus.game_paused.emit(false)
