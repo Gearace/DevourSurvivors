@@ -8,6 +8,7 @@ var _gesture_detector: Object
 var _wave_spawner: Node
 var _pool: Node2D
 var _skill_system: Node
+var _upgrade_popup: Control
 var _captured_this_wave: int = 0
 
 func _ready() -> void:
@@ -17,6 +18,7 @@ func _ready() -> void:
     _wave_spawner = get_node("WaveSpawner")
     _pool = get_node("ObjectPool")
     _skill_system = get_node("SkillSystem")
+    _upgrade_popup = get_node_or_null("UpgradePopup")
     
     # 连接摇杆信号
     if _player and _joystick:
@@ -47,6 +49,15 @@ func _ready() -> void:
     if gm:
         gm.set_state(1)
         print("[MainGame] 游戏状态: PLAYING")
+    
+    # 连接升级信号
+    if _upgrade_popup:
+        UpgradePopup.card_confirmed.connect(func(card):
+            if _upgrade_popup:
+                _upgrade_popup.hide_upgrade()
+            EventBus.game_paused.emit(false)
+        )
+        print("[MainGame] 升级弹窗信号已连接")
     
     # 开始第一波
     await get_tree().create_timer(1.0).timeout

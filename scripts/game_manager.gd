@@ -92,6 +92,15 @@ func trigger_level_up() -> void:
 	level_up.emit()
 	set_state(GameState.LEVEL_UP)
 	print("[GameManager] 升级! Lv.", player_stats.level)
+	
+	# 通知 UpgradeSystem 抽卡
+	var cards = UpgradeSystem.draw_upgrade_cards()
+	
+	# 通知 UpgradePopup 显示
+	UpgradePopup.show_upgrade(cards)
+	
+	# 暂停游戏逻辑
+	EventBus.game_paused.emit(true)
 
 ## 波次管理
 func start_wave(wave_num: int) -> void:
@@ -105,15 +114,20 @@ func end_wave() -> void:
 	print("[GameManager] 波次 ", current_wave, " 清除")
 
 ## 牌组管理
-func add_card_to_deck(card_id: String) -> void:
+func add_card_to_deck(card_id: String) -> bool:
 	if player_deck.size() < deck_capacity:
 		player_deck.append(card_id)
 		print("[GameManager] 获得卡牌: ", card_id, " (", player_deck.size(), "/", deck_capacity, ")")
+		
+		# 应用被动效果
+		var card = CardDatabase.find_card_by_id(card_id)
+		if not card.is_empty():
+			UpgradeSystem._apply_passive_effects(card)
+		
 		return true
 	else:
 		print("[GameManager] 牌组已满! (", deck_capacity, ")")
 		return false
-
 func remove_card_from_deck(card_id: String) -> void:
 	if card_id in player_deck:
 		player_deck.erase(card_id)

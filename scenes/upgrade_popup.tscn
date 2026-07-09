@@ -1,1 +1,55 @@
-[gdscene ]
+[gdscene format=3 resource_version=3
+]
+
+[node name="UpgradePopup" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+layer = 100
+script = ExternalResource{path="res://scripts/upgrade_popup.gd", id=1}
+
+[node name="Overlay" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.7)
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 3
+offset_top = 60.0
+offset_bottom = -60.0
+offset_left = 40.0
+offset_right = -40.0
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+layout_mode = 1
+spacing = 12
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 1
+text = "升级！选择卡牌"
+horizontal_alignment = 1
+font_size = 28
+self_modulate = Color(1, 0.85, 0.3, 1)
+
+[node name="Separator" type="HSeparator" parent="Panel/VBox"]
+layout_mode = 1
+
+[node name="CardGrid" type="GridContainer" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 1
+columns = 2
+theme_override_constants/h_separation = 16
+theme_override/constants/v_separation = 16
+
+[node name="ConfirmButton" type="Button" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 1
+text = "确认选择"
+disabled = true
