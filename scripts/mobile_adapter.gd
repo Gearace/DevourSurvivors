@@ -12,9 +12,7 @@ func _ready() -> void:
 
 ## 设置显示参数
 func _setup_display() -> void:
-	# 锁定竖屏
-	if DisplayServer.has_feature(DisplayServer.FEATURE_SCREEN_PORTAIT):
-		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
+	# 竖屏锁定由 project.godot 配置，此处不再运行时检查
 	
 	# 设置视口尺寸
 	DisplayServer.window_set_size(Vector2i(VIEWPORT_WIDTH, VIEWPORT_HEIGHT))
@@ -26,9 +24,9 @@ func _setup_display() -> void:
 ## 设置渲染参数
 func _setup_rendering() -> void:
 	# 使用 mobile 渲染器
-	var rendering_device := RenderingServer.get_rendering_device()
+	var rendering_device = RenderingServer.get_rendering_device()
 	if rendering_device:
-		var adapter_info := rendering_device.get_adapter_name()
+		var adapter_info: String = rendering_device.get_adapter_name()
 		print("[MobileAdapter] GPU: ", adapter_info)
 
 ## 获取逻辑分辨率
@@ -37,7 +35,12 @@ func get_logical_size() -> Vector2:
 
 ## 屏幕坐标转逻辑坐标
 func screen_to_logic(screen_pos: Vector2) -> Vector2:
-	var view_rect = get_viewport_rect()
+	var vp = get_viewport()
+	var view_rect: Rect2
+	if vp:
+		view_rect = Rect2(Vector2.ZERO, vp.get_visible_rect().size)
+	else:
+		view_rect = Rect2(Vector2.ZERO, Vector2(VIEWPORT_WIDTH, VIEWPORT_HEIGHT))
 	var scale = view_rect.size.x / VIEWPORT_WIDTH
 	return screen_pos / scale
 

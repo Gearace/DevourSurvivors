@@ -255,7 +255,7 @@ func _check_wave_complete() -> void:
         # 自动开始下一波 (延迟2秒)
         var tween = create_tween()
         tween.tween_delay(2.0)
-        tween.tween_callback(func: start_wave(_current_wave + 1))
+        tween.tween_callback(func(): start_wave(_current_wave + 1))
 
 ## 获取屏幕尺寸
 func _get_screen_size() -> Vector2:
@@ -271,3 +271,4 @@ func clear_all() -> void:
     _spawn_queue.clear()
     _is_generating = false
     _all_spawned = true
+

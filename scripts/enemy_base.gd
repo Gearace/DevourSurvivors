@@ -101,7 +101,7 @@ func die() -> void:
 func _death_animation() -> void:
     var tween = create_tween()
     tween.tween_property(self, "scale", Vector2.ZERO, 0.3)
-    tween.tween_callback(func: queue_free())
+    tween.tween_callback(func(): queue_free())
 
 ## 更新视觉
 func _update_visuals() -> void:
@@ -140,3 +140,4 @@ func get_flee_direction() -> Vector2:
         return Vector2.RIGHT
     var dir = global_position - player_ref.global_position
     return dir.normalized()
+

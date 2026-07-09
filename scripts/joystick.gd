@@ -130,4 +130,7 @@ func _release() -> void:
 
 ## 获取摇杆中心的世界坐标
 func get_world_center() -> Vector2:
-    return to_global(_center)
+    var parent = get_parent()
+    if parent:
+        return parent.to_global(_center)
+    return _center

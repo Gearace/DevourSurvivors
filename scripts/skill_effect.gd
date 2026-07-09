@@ -88,7 +88,9 @@ func _capture_in_radius(radius: float) -> void:
             continue
         var dist = _center.distance_to(enemy.global_position)
         if dist <= radius:
-            var e_radius = enemy.get_meta("body_radius", 15.0)
+            var e_radius: float = 15.0
+            if enemy.has_meta("body_radius"):
+                e_radius = enemy.get_meta("body_radius")
             if player_radius >= e_radius * 0.8:
                 _capture_single(enemy)
 
@@ -342,3 +344,4 @@ func _update_aura(delta: float) -> void:
     # 光环持续吞噬
     if fmod(Time.get_ticks_msec(), 1000) < int(delta * 1000):
         _capture_in_radius(80.0)
+

@@ -159,7 +159,7 @@ func _on_confirm_pressed() -> void:
 func _animate_panel_out() -> void:
     var tween = create_tween()
     tween.tween_property(panel, "modulate", Color.TRANSPARENT, 0.2)
-    tween.tween_callback(func: visible = false)
+    tween.tween_callback(func(): visible = false)
 
 func _get_rarity_text(rarity: String) -> String:
     match rarity:
@@ -171,5 +171,6 @@ func _get_rarity_text(rarity: String) -> String:
 
 func hide_upgrade() -> void:
     visible = false
+
 
 

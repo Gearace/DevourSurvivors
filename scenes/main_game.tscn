@@ -1,4 +1,4 @@
-[gdscene format=3 load_steps=9 uid="uid://main_game_001"]
+[gdscene format=3 load_steps=10 uid="uid://main_game_001"]
 
 [ext_resource type="Script" path="res://scripts/main_game_controller.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/mobile_adapter.gd" id="2_mobile"]
@@ -79,7 +79,7 @@ custom_minimum_size = Vector2(0, 200)
 layout_mode = 1
 columns = 2
 theme_override_constants/h_separation = 16
-theme_override&constants/v_separation = 16
+theme_override/constants/v_separation = 16
 
 [node name="ConfirmButton" type="Button" parent="UpgradePopup/Panel/VBox"]
 custom_minimum_size = Vector2(0, 50)
@@ -96,5 +96,7 @@ layer = 10
 
 [node name="JoystickLayer" type="CanvasLayer" parent="."]
 layer = 20
+
+
 
 
