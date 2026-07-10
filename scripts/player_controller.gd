@@ -35,12 +35,9 @@ signal player_captured_enemy(enemy_type: String, value: float)
 
 func _ready() -> void:
     # 获取全局引用
-    _gm = get_node_or_null("GameManager")
-    _event_bus = get_node_or_null("EventBus")
-    _pool = get_node_or_null("ObjectPool")
-    
-    # 初始化手势识别器
-    _gesture_detector = preload("res://scripts/gesture_detector.gd").new()
+    _gm = get_node_or_null("/root/GameManager")
+    _event_bus = get_node_or_null("/root/EventBus")
+    _pool = get_node_or_null("../ObjectPool")
     
     # 初始化身体视觉
     _update_body_visuals()
@@ -113,7 +110,11 @@ func _check_and_capture() -> void:
             continue
         
         var dist = global_position.distance_to(enemy.global_position)
-        var enemy_radius = enemy.get_meta("body_radius", 15.0)
+        
+        # 安全获取 enemy body_radius
+        var enemy_radius: float = 15.0
+        if enemy.has_meta("body_radius"):
+            enemy_radius = enemy.get_meta("body_radius")
         
         if dist <= capture_radius + enemy_radius:
             # 距离足够近，检查能否吞噬
@@ -127,8 +128,16 @@ func _can_capture(enemy_size: float) -> bool:
 
 ## 执行吞噬
 func _execute_capture(enemy) -> void:
-    var enemy_type = enemy.get_meta("enemy_type", "basic")
-    var enemy_size = enemy.get_meta("body_radius", 15.0)
+    # 安全获取 enemy_type
+    var enemy_type: String = "basic"
+    if enemy.has_meta("enemy_type"):
+        enemy_type = enemy.get_meta("enemy_type")
+    
+    # 安全获取 enemy body_radius
+    var enemy_size: float = 15.0
+    if enemy.has_meta("body_radius"):
+        enemy_size = enemy.get_meta("body_radius")
+    
     var capture_value = _get_capture_value(enemy_type, enemy_size)
     
     # 通知 GameManager
@@ -155,7 +164,7 @@ func _execute_capture(enemy) -> void:
 
 ## 获取吞噬收益值
 func _get_capture_value(enemy_type: String, enemy_size: float) -> float:
-    var values = {
+    var values: Dictionary = {
         "basic": 1.0,
         "swift": 0.5,
         "heavy": 3.0,
@@ -185,12 +194,12 @@ func take_damage(amount: int) -> void:
 ## 更新身体视觉
 func _update_body_visuals() -> void:
     # 根据体型调整颜色和大小
-    var scale = body_radius / 20.0  # 以初始大小为单位
+    var scale: float = body_radius / 20.0  # 以初始大小为单位
     scale = clamp(scale, 0.8, 3.0)
     scale_node(scale)
     
     # 体型越大颜色越深
-    var brightness = clamp(1.0 / scale, 0.3, 1.0)
+    var brightness: float = clamp(1.0 / scale, 0.3, 1.0)
     _body_color = Color(0.3 * brightness, 0.8 * brightness, 0.4 * brightness)
     
     # 更新身体颜色

@@ -29,7 +29,7 @@ func _preallocate(count: int) -> void:
 
 ## 从池中获取一个敌人
 func spawn(position: Vector2, type_data: Dictionary = {}) -> Node2D:
-    var enemy: Node2D
+    var enemy: Node2D = null
     
     if _pool.is_empty():
         # 池空了，动态扩容

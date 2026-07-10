@@ -17,7 +17,7 @@ var _player: Node2D
 
 func _ready() -> void:
     _timer = effect_duration
-    _gm = get_node_or_null("GameManager")
+    _gm = get_node_or_null("/root/GameManager")
     _player = get_node_or_null("/root/MainGame/Player")
     add_to_group("skill_effects")
 
@@ -76,11 +76,13 @@ func _cleanup() -> void:
 func _capture_in_radius(radius: float) -> void:
     if _player == null:
         return
-    var pool = get_node_or_null("ObjectPool")
+    var pool = get_node_or_null("/root/MainGame/ObjectPool")
     if pool == null:
         return
     
-    var player_radius = _player.get("body_radius", 20.0)
+    var player_radius: float = 20.0
+    if _player.has_meta("body_radius"):
+        player_radius = _player.get_meta("body_radius")
     var enemies = pool.get_active_enemies()
     
     for enemy in enemies:
@@ -97,10 +99,16 @@ func _capture_in_radius(radius: float) -> void:
 func _capture_single(enemy) -> void:
     if enemy == null or not is_instance_valid(enemy):
         return
-    var data = {
+    var enemy_type: String = "basic"
+    if enemy.has_meta("enemy_type"):
+        enemy_type = enemy.get_meta("enemy_type")
+    var enemy_size: float = 15.0
+    if enemy.has_meta("body_radius"):
+        enemy_size = enemy.get_meta("body_radius")
+    var data: Dictionary = {
         "node": enemy,
-        "type": enemy.get_meta("enemy_type", "basic"),
-        "size": enemy.get_meta("body_radius", 15.0),
+        "type": enemy_type,
+        "size": enemy_size,
     }
     if _player and _player.has_method("_execute_capture"):
         _player._execute_capture(data)
@@ -183,9 +191,8 @@ func _create_beam_visual(effects: Dictionary) -> void:
     
     var rect = ColorRect.new()
     rect.size = Vector2(length, width)
-    rect.position = Vector2(-length / 2, -width / 2)
-    rect.color = color
     rect.position = -rect.size / 2
+    rect.color = color
     add_child(rect)
     _visuals.push_back(rect)
 
@@ -230,7 +237,7 @@ func _create_line_visual(effects: Dictionary) -> void:
     
     var rect = ColorRect.new()
     rect.size = Vector2(length, width)
-    rect.position = Vector2(-length / 2, -width / 2)
+    rect.position = -rect.size / 2
     rect.color = color
     add_child(rect)
     _visuals.push_back(rect)
@@ -344,4 +351,3 @@ func _update_aura(delta: float) -> void:
     # 光环持续吞噬
     if fmod(Time.get_ticks_msec(), 1000) < int(delta * 1000):
         _capture_in_radius(80.0)
-

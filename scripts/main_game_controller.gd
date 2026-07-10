@@ -8,7 +8,6 @@ var _gesture_detector: Object
 var _wave_spawner: Node
 var _pool: Node2D
 var _skill_system: Node
-var _upgrade_popup: Control
 var _captured_this_wave: int = 0
 
 func _ready() -> void:
@@ -18,7 +17,6 @@ func _ready() -> void:
     _wave_spawner = get_node("WaveSpawner")
     _pool = get_node("ObjectPool")
     _skill_system = get_node("SkillSystem")
-    _upgrade_popup = get_node_or_null("UpgradePopup")
     
     # 连接摇杆信号
     if _player and _joystick:
@@ -29,35 +27,17 @@ func _ready() -> void:
     _gesture_detector = preload("res://scripts/gesture_detector.gd").new()
     
     # 连接波次信号
-    _wave_spawner.wave_starting.connect(func(wave_num: int):
-        print("[MainGame] === 波次 ", wave_num, " ===")
-        _captured_this_wave = 0
-    )
-    _wave_spawner.wave_complete.connect(func(wave_num: int):
-        print("[MainGame] 波次 ", wave_num, " 完成! 吞噬:", _captured_this_wave)
-    )
+    _wave_spawner.wave_starting.connect(_on_wave_starting)
+    _wave_spawner.wave_complete.connect(_on_wave_complete)
     
     # 连接吞噬信号
-    _player.player_captured_enemy.connect(func(type: String, value: float):
-        _captured_this_wave += 1
-        if _wave_spawner:
-            _wave_spawner.on_enemy_captured()
-    )
+    _player.player_captured_enemy.connect(_on_player_captured)
     
     # 设置游戏状态
-    var gm = get_node_or_null("GameManager")
+    var gm = get_node_or_null("/root/GameManager")
     if gm:
         gm.set_state(1)
         print("[MainGame] 游戏状态: PLAYING")
-    
-    # 连接升级信号
-    if _upgrade_popup:
-        _upgrade_popup.card_confirmed.connect(func(card):
-            if _upgrade_popup:
-                _upgrade_popup.hide_upgrade()
-            EventBus.game_paused.emit(false)
-        )
-        print("[MainGame] 升级弹窗信号已连接")
     
     # 开始第一波
     await get_tree().create_timer(1.0).timeout
@@ -65,6 +45,18 @@ func _ready() -> void:
         _wave_spawner.start_wave(1)
     
     print("[MainGame] 场景初始化完成")
+
+func _on_wave_starting(wave_num: int) -> void:
+    print("[MainGame] === 波次 ", wave_num, " ===")
+    _captured_this_wave = 0
+
+func _on_wave_complete(wave_num: int) -> void:
+    print("[MainGame] 波次 ", wave_num, " 完成! 吞噬:", _captured_this_wave)
+
+func _on_player_captured(type: String, value: float) -> void:
+    _captured_this_wave += 1
+    if _wave_spawner:
+        _wave_spawner.on_enemy_captured()
 
 func _process(delta: float) -> void:
     # 每帧更新敌人玩家引用
@@ -74,13 +66,16 @@ func _process(delta: float) -> void:
             if enemy and enemy.has_method("set_player_reference"):
                 enemy.set_player_reference(_player)
 
+const MOUSE_BUTTON_LEFT := 1
+const KEY_ESCAPE := 4163
+
 func _unhandled_input(event: InputEvent) -> void:
     """处理全局输入"""
     if _gesture_detector == null:
         return
     
-    var gesture = 0
-    var data = {}
+    var gesture: int = 0
+    var data: Dictionary = {}
     
     if event is InputEventScreenTouch:
         gesture = _gesture_detector.process_event(event)
@@ -94,7 +89,7 @@ func _unhandled_input(event: InputEvent) -> void:
     
     # ESC 暂停
     if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-        var gm = get_node_or_null("GameManager")
+        var gm = get_node_or_null("/root/GameManager")
         if gm:
             if gm.current_state == 1:
                 gm.set_state(2)

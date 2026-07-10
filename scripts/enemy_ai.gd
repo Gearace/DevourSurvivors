@@ -1,4 +1,4 @@
-extends Node
+extends Node2D
 ## EnemyAI — 敌人行为控制器
 ## 挂载在每个敌人节点上，负责逃跑/游荡/边界处理
 

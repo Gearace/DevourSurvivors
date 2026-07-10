@@ -17,7 +17,7 @@ const SWIPE_MIN_DISTANCE    := 30.0   # 划屏最小位移 (px)
 const SWIPE_MAX_DURATION    := 500.0  # 划屏最大耗时 (ms)
 const DOUBLE_CLICK_WINDOW   := 300.0  # 双击时间窗口 (ms)
 const DOUBLE_CLICK_RADIUS   := 20.0   # 双击位置容差 (px)
-const TAP_RADIUS            := 15.0   # 点击 vs 拖拽的容差
+const TAP_RADIUS            := 15.0\nconst MOUSE_BUTTON_LEFT := 1   # 点击 vs 拖拽的容差
 
 # ─── 手势类型 ─────────────────────────────────────────
 enum GestureType {

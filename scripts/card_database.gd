@@ -120,11 +120,11 @@ static func find_card_by_id(card_id: String) -> Dictionary:
 
 # ========== 获取卡牌数量统计 ==========
 static func get_card_counts() -> Dictionary:
-	var counts: Dictionary = {"Core": 0, "Component": 0, "Resonance": 0, "Relic": 0}
+	var counts: Dictionary = {"Core": 0, "Component": 0, "Resonance": 0, "Relic": 0, "total": 0}
 	for card in get_all_cards():
 		var cat: String = card.get("category", "")
 		if cat in counts:
 			counts[cat] = counts[cat] + 1
 	var total: int = get_all_cards().size()
-	counts["total"] = total
+	counts["total"] = total as int
 	return counts

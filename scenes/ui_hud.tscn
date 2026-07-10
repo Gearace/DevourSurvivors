@@ -1,1 +1,76 @@
-[gdscene ]
+[gd_scene format=3 uid="uid://ui_hud_001"]
+
+[node name="UI_HUD" type="CanvasLayer"]
+
+[node name="HUD_Container" type="VBoxContainer" parent="."]
+anchors_preset = -1
+anchor_right = 0.95
+anchor_bottom = 0.15
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HP_Bar_Container" type="HBoxContainer" parent="HUD_Container"]
+
+[node name="HP_Label" type="Label" parent="HUD_Container"]
+custom_minimum_size = Vector2(100, 20)
+anchors_preset = 0
+offset_left = 10.0
+offset_top = 10.0
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = null
+theme_override_font_sizes/font_size = 16
+text = "HP: 100/100"
+horizontal_alignment = 1
+
+[node name="Score_Label" type="Label" parent="HUD_Container"]
+custom_minimum_size = Vector2(100, 20)
+anchors_preset = 6
+offset_left = 10.0
+offset_top = 30.0
+offset_right = 300.0
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = null
+theme_override_font_sizes/font_size = 14
+text = "Score: 0"
+horizontal_alignment = 1
+
+[node name="Wave_Label" type="Label" parent="HUD_Container"]
+anchors_preset = 6
+offset_left = 10.0
+offset_top = 50.0
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = null
+theme_override_font_sizes/font_size = 14
+text = "Wave: 1"
+horizontal_alignment = 1
+
+[node name="Skill_Cooldowns" type="CenterContainer" parent="HUD_Container"]
+anchors_preset = 7
+offset_left = 10.0
+offset_top = 80.0
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[connection signal="tree_exited" from="HUD_Container" to="." method="_on_HUD_exited"]

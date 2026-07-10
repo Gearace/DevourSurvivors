@@ -156,7 +156,7 @@ var _skill_definitions: Dictionary = {
 
 # ─── 内部状态 ─────────────────────────────────────────
 var _owned_skills: Dictionary = {}   # { skill_id: { level, cooldown_timer, max_cooldown } }
-var _active_effects: Array[Node] = []  # 当前正在生效的技能效果节点
+var _active_effects: Array[Node2D] = []  # 当前正在生效的技能效果节点
 var _energy: float = 0.0
 var _max_energy: float = 10.0
 var _energy_regenerate_rate: float = 1.0  # 每秒恢复能量
@@ -176,8 +176,8 @@ func _process(delta: float) -> void:
     # 更新冷却
     for skill_id in _owned_skills:
         var info = _owned_skills[skill_id]
-        if info.cooldown_timer > 0:
-            info.cooldown_timer -= delta
+        if info.get("cooldown_timer", 0.0) > 0:
+            info["cooldown_timer"] = info.get("cooldown_timer", 0.0) - delta
     
     # 能量自然恢复
     _energy = min(_energy + _energy_regenerate_rate * delta, _max_energy)
@@ -205,7 +205,7 @@ func add_skill(skill_id: String) -> void:
 func upgrade_skill(skill_id: String) -> void:
     if skill_id not in _owned_skills:
         return
-    _owned_skills[skill_id]["level"] += 1
+    _owned_skills[skill_id]["level"] = _owned_skills[skill_id]["level"] + 1
     print("[SkillSystem] 升级技能: ", skill_id, " Lv.", _owned_skills[skill_id]["level"])
 
 ## 检查技能是否就绪 (冷却结束)
@@ -246,7 +246,7 @@ func cast_swipe_skill(skill_id: String, direction: Vector2) -> bool:
         return false
     
     # 启动冷却
-    _owned_skills[skill_id]["cooldown_timer"] = def.cooldown
+    _owned_skills[skill_id]["cooldown_timer"] = def.get("cooldown", 3.0)
     
     # 执行效果
     var effect = _create_effect(skill_id, def, direction)
@@ -270,7 +270,7 @@ func cast_double_skill(skill_id: String) -> bool:
         return false
     
     # 启动冷却
-    _owned_skills[skill_id]["cooldown_timer"] = def.cooldown
+    _owned_skills[skill_id]["cooldown_timer"] = def.get("cooldown", 3.0)
     
     # 执行效果
     var effect = _create_effect(skill_id, def, Vector2.ZERO)
@@ -330,7 +330,7 @@ func _create_effect(skill_id: String, definition: Dictionary, direction: Vector2
 ## ── 效果工厂方法 ──
 
 func _create_beam_effect(effects: Dictionary, player: Node2D, direction: Vector2) -> Node2D:
-    var BeamEffect = preload("res://scripts/skill_effect.gd")
+    var BeamEffect: GDScript = preload("res://scripts/skill_effect.gd")
     var effect = BeamEffect.new()
     effect.setup_beam(player.global_position, direction, effects)
     return effect
@@ -373,7 +373,7 @@ func _create_copy_effect(effects: Dictionary, player: Node2D) -> Node2D:
 
 func _create_freeze_effect(effects: Dictionary, player: Node2D) -> Node2D:
     var effect = preload("res://scripts/skill_effect.gd").new()
-    effect.setup_freeze(player.get_viewport_rect().size, effects)
+    effect.setup_freeze(Vector2(720, 1280), effects)
     return effect
 
 func _create_pull_effect(effects: Dictionary, player: Node2D) -> Node2D:
@@ -391,4 +391,5 @@ func remove_effect(effect_node: Node2D) -> void:
     if effect_node in _active_effects:
         _active_effects.erase(effect_node)
     effect_removed.emit(effect_node)
+
 

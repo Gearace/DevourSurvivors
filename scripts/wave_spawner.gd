@@ -3,7 +3,7 @@ extends Node
 ## 负责每波敌人的配置、生成、清理、难度递增
 
 # ─── 公开属性 ─────────────────────────────────────────
-@export var pool_node_path: String = "ObjectPool"
+# @export var pool_node_path: String = "ObjectPool"  # Deprecated, using relative path
 
 # ─── 敌人类型配置 ─────────────────────────────────────
 # 每种敌人: { name, hp, speed, body_radius, color, capture_value, flee_radius, flee_speed_mult, wander_speed_mult }
@@ -71,8 +71,8 @@ var _enemy_configs: Dictionary = {
 }
 
 # ─── 波次配置 ─────────────────────────────────────────
-# 每波: { waves: [{ type, count }] }
-var _wave_configs: Array[Dictionary] = [
+# 每波: Array of { type, count }
+var _wave_configs: Array = [
     # Wave 1: 5 个小兵
     [{"type": "basic", "count": 5}],
     # Wave 2: 8 小兵 + 2 迅捷
@@ -87,7 +87,7 @@ var _wave_configs: Array[Dictionary] = [
 
 # ─── 内部状态 ─────────────────────────────────────────
 var _current_wave: int = 0
-var _spawn_queue: Array[Dictionary] = []
+var _spawn_queue: Array = []
 var _spawn_timer: float = 0.0
 var _spawn_interval: float = 0.5  # 每 0.5 秒生成一个敌人
 var _is_generating: bool = false
@@ -105,9 +105,9 @@ var _gm: Node
 var _player: Node2D
 
 func _ready() -> void:
-    _pool = get_node_or_null(pool_node_path)
-    _gm = get_node_or_null("GameManager")
-    _player = get_node_or_null("Player")
+    _pool = get_node_or_null("../ObjectPool")
+    _gm = get_node_or_null("/root/GameManager")
+    _player = get_node_or_null("/root/MainGame/Player")
     
     if _pool == null:
         print("[WaveSpawner] 警告: ObjectPool 节点未找到，将在 _process 中重试")
@@ -116,7 +116,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
     if _pool == null:
-        _pool = get_node_or_null(pool_node_path)
+        _pool = get_node_or_null("../ObjectPool")
         if _pool == null:
             return
     
@@ -141,8 +141,8 @@ func start_wave(wave_number: int) -> void:
     _all_spawned = false
     
     # 获取波次配置
-    var config_index = wave_number - 1
-    var wave_entries: Array[Dictionary]
+    var config_index: int = wave_number - 1
+    var wave_entries = []
     
     if config_index < _wave_configs.size():
         wave_entries = _wave_configs[config_index]
@@ -153,10 +153,10 @@ func start_wave(wave_number: int) -> void:
     # 构建生成队列
     _spawn_queue.clear()
     for entry in wave_entries:
-        var config = _enemy_configs.get(entry.type, _enemy_configs["basic"])
-        for i in range(entry.count):
+        var config = _enemy_configs.get(entry.get("type", "basic"), _enemy_configs["basic"])
+        for i in range(entry.get("count", 1)):
             _spawn_queue.push_back({
-                "type": entry.type,
+                "type": entry.get("type", "basic"),
                 "config": config.duplicate(true),
             })
     
@@ -171,12 +171,14 @@ func start_wave(wave_number: int) -> void:
     print("[WaveSpawner] 波次 ", wave_number, " 开始 — 生成 ", _spawn_queue.size(), " 个敌人")
 
 ## 动态生成超出预设的波次
-func _generate_dynamic_wave(wave_num: int) -> Array[Dictionary]:
-    var entries: Array[Dictionary]
-    var difficulty = _gm.difficulty_multiplier if _gm else 1.0
+func _generate_dynamic_wave(wave_num: int) -> Array:
+    var entries = []
+    var difficulty: float = 1.0
+    if _gm:
+        difficulty = _gm.difficulty_multiplier
     
     # 基础小兵数量递增
-    var basic_count = int(5 + wave_num * 2 * difficulty)
+    var basic_count: int = int(5 + wave_num * 2 * difficulty)
     entries.push_back({"type": "basic", "count": basic_count})
     
     # 迅捷和重装按比例出现
@@ -196,7 +198,7 @@ func _generate_dynamic_wave(wave_num: int) -> Array[Dictionary]:
 ## 打乱生成队列
 func _shuffle_queue() -> void:
     for i in range(_spawn_queue.size() - 1, 0, -1):
-        var j = randi() % (i + 1)
+        var j: int = randi() % (i + 1)
         var temp = _spawn_queue[i]
         _spawn_queue[i] = _spawn_queue[j]
         _spawn_queue[j] = temp
@@ -216,12 +218,12 @@ func _spawn_next_enemy() -> void:
     # 从对象池生成
     var enemy = _pool.spawn(spawn_pos, type_data)
     if enemy:
-        _captured_count += 1  # 只是计数器，实际吞噬在 enemy_captured 信号中处理
+        pass  # 实际吞噬计数在 enemy_captured 信号中处理
 
 ## 获取屏幕边缘随机位置
 func _get_random_edge_position() -> Vector2:
     var screen_size = _get_screen_size()
-    var edge = randi() % 4  # 0=top, 1=right, 2=bottom, 3=left
+    var edge: int = randi() % 4  # 0=top, 1=right, 2=bottom, 3=left
     
     match edge:
         0:  # 上边缘
@@ -244,7 +246,9 @@ func on_enemy_captured() -> void:
 ## 检查波次是否完成
 func _check_wave_complete() -> void:
     # 等待一小段时间确保所有敌人都被处理
-    var active_count = _pool.get_active_count() if _pool else 0
+    var active_count: int = 0
+    if _pool:
+        active_count = _pool.get_active_count()
     if active_count <= 0:
         _is_generating = false
         if _gm:
@@ -255,7 +259,11 @@ func _check_wave_complete() -> void:
         # 自动开始下一波 (延迟2秒)
         var tween = create_tween()
         tween.tween_delay(2.0)
-        tween.tween_callback(func(): start_wave(_current_wave + 1))
+        _start_next_wave(_current_wave + 1)
+
+## 启动下一波（命名闭包替代 func: lambda）
+func _start_next_wave(next_wave_num: int) -> void:
+    start_wave(next_wave_num)
 
 ## 获取屏幕尺寸
 func _get_screen_size() -> Vector2:

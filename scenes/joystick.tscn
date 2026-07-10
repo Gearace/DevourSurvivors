@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/joystick.gd" id="1_joystick"]
 
-[node name="VirtualJoystick" type="Control"]
+[node name="Joystick" type="Control"]
 layout_mode = 0
 anchors_preset = 7
 anchor_right = 0.5

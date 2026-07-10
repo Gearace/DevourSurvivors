@@ -12,6 +12,12 @@ extends Control
 ##   joystick.active     → 是否正在被拖动
 ##   连接信号: joystick_moved(direction), joystick_released()
 
+# ─── 手势常量 ─────────────────────────────────────────
+## SizeFlags 兼容值 (Godot 4.x/4.7)
+const SIZE_SHRINK_CENTER := 2
+const SIZE_SHRINK_END := 3
+const MOUSE_FILTER_PASS := 0
+
 # ─── 公开信号 ─────────────────────────────────────────
 signal moved(direction: Vector2)
 signal released
@@ -39,8 +45,8 @@ func _ready() -> void:
     anchor_bottom = 1.0
     anchor_right = 0.5
     anchor_left = 0.5
-    size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-    size_flags_vertical = Control.SIZE_SHRINK_END
+    size_flags_horizontal = SIZE_SHRINK_CENTER
+    size_flags_vertical = SIZE_SHRINK_END
     
     # 设置大小
     custom_minimum_size = Vector2(outer_radius * 2.5, outer_radius * 2.5)
@@ -73,11 +79,8 @@ func _input_event(viewport: Viewport, event: InputEvent, shape_idx: int) -> void
         var touch: InputEventScreenTouch = event
         
         # 判断触摸是否在摇杆范围内
-        var dist_to_center = touch.position.distance_to(_center)
-        var in_range = dist_to_center < outer_radius * 1.5
-        
-        if touch.index == touch.id:
-            pass  # 继续处理
+        var dist_to_center: float = touch.position.distance_to(_center)
+        var in_range: bool = dist_to_center < outer_radius * 1.5
         
         if touch.pressed and in_range and touch_id == -1:
             # 手指按下 — 开始拖动
@@ -106,7 +109,7 @@ func _input_event(viewport: Viewport, event: InputEvent, shape_idx: int) -> void
             _clamp_inner_position()
             
             var dir = (_inner_pos - _center).normalized()
-            var dist = _inner_pos.distance_to(_center)
+            var dist: float = _inner_pos.distance_to(_center)
             
             if dist > dead_zone:
                 direction = dir
@@ -116,7 +119,7 @@ func _input_event(viewport: Viewport, event: InputEvent, shape_idx: int) -> void
 
 func _clamp_inner_position() -> void:
     var offset = _inner_pos - _center
-    var dist = offset.length()
+    var dist: float = offset.length()
     if dist > outer_radius:
         _inner_pos = _center + offset.normalized() * outer_radius
 
@@ -130,7 +133,7 @@ func _release() -> void:
 
 ## 获取摇杆中心的世界坐标
 func get_world_center() -> Vector2:
-    var parent = get_parent()
+    var parent = get_parent() as Node2D
     if parent:
         return parent.to_global(_center)
     return _center

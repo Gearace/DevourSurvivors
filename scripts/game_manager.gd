@@ -23,16 +23,16 @@ var current_state: GameState = GameState.MENU
 
 # 全局数据
 var player_stats: Dictionary = {
-	level = 1,
-	xp = 0,
-	max_hp = 100,
-	current_hp = 100,
-	speed = 200.0,
-	capture_range = 40.0,
-	capture_bonus = 1.0,
-	skill_cd_multiplier = 1.0,
-	total_captured = 0,
-	score = 0,
+	"level": 1,
+	"xp": 0,
+	"max_hp": 100,
+	"current_hp": 100,
+	"speed": 200.0,
+	"capture_range": 40.0,
+	"capture_bonus": 1.0,
+	"skill_cd_multiplier": 1.0,
+	"total_captured": 0,
+	"score": 0,
 }
 
 # 波次数据
@@ -71,27 +71,27 @@ func is_level_up() -> bool:
 
 ## 吞噬敌人后的处理
 func on_enemy_captured(enemy_type: String, capture_value: float) -> void:
-	player_stats.total_captured += 1
-	player_stats.score += int(capture_value * 10)
+	player_stats["total_captured"] += 1
+	player_stats["score"] += int(capture_value * 10)
 	
 	# 体型增长
-	var growth = capture_value * player_stats.capture_bonus
-	player_stats.capture_range += growth * 0.1
+	var growth = capture_value * player_stats.get("capture_bonus", 1.0)
+	player_stats["capture_range"] += growth * 0.1
 	
 	# 检查升级
-	if player_stats.total_captured >= get_xp_threshold():
+	if player_stats.get("total_captured", 0) >= get_xp_threshold():
 		trigger_level_up()
 
 ## 计算升级所需XP (吞噬数)
 func get_xp_threshold() -> int:
-	return int(5 * pow(1.1, player_stats.level - 1))
+	return int(5 * pow(1.1, player_stats.get("level", 1) - 1))
 
 ## 触发升级
 func trigger_level_up() -> void:
-	player_stats.level += 1
+	player_stats["level"] += 1
 	level_up.emit()
 	set_state(GameState.LEVEL_UP)
-	print("[GameManager] 升级! Lv.", player_stats.level)
+	print("[GameManager] 升级! Lv.", player_stats.get("level", 1))
 	
 	# 通知 UpgradeSystem 抽卡
 	var cards = UpgradeSystem.draw_upgrade_cards()
@@ -147,7 +147,7 @@ func get_capacity() -> int:
 func check_fusion(new_card_id: String) -> Dictionary:
 	for card_id in player_deck:
 		var result = _try_fuse(card_id, new_card_id)
-		if result.is_empty() == false:
+		if not result.is_empty():
 			return result
 	return {}
 
@@ -207,7 +207,7 @@ func save_game() -> void:
 		"stats": player_stats,
 		"deck": player_deck,
 		"wave": current_wave,
-		"score": player_stats.score,
+		"score": player_stats.get("score", 0),
 	}
 	var json_str = JSON.stringify(save_data)
 	var file = FileAccess.open("user://save_data.json", FileAccess.WRITE)
@@ -237,5 +237,5 @@ func load_game() -> bool:
 	player_stats = save_data.get("stats", player_stats)
 	player_deck = save_data.get("deck", [])
 	current_wave = save_data.get("wave", 1)
-	print("[GameManager] 游戏已加载 — Lv.", player_stats.level, " 波次", current_wave)
+	print("[GameManager] 游戏已加载 — Lv.", player_stats.get("level", 1), " 波次", current_wave)
 	return true
