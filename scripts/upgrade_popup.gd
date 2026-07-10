@@ -13,10 +13,6 @@ var overlay: ColorRect
 var current_cards: Array[Dictionary] = []
 var selected_card_idx: int = -1
 
-const MOUSE_FILTER_STOP := 2
-const MOUSE_BUTTON_LEFT := 1
-const HORIZONTAL_ALIGNMENT_CENTER := 1
-const TEXT_AUTOWRAP_WORD_SMART := 2
 
 var rarity_colors: Dictionary = {
     "Common": Color(0.6, 0.8, 0.6, 1.0),
@@ -67,8 +63,6 @@ func _build_ui() -> void:
     title_label.self_modulate = Color(1, 0.85, 0.3, 1)
     vbox.add_child(title_label)
     
-    # Separator
-    var sep = SeparationContainer.new()
     # Use a simple spacer instead
     var spacer = Control.new()
     spacer.custom_minimum_size = Vector2(0, 5)
@@ -167,7 +161,7 @@ func _create_card_ui(card: Dictionary, idx: int) -> Control:
     rarity_label.self_modulate = border_color
     container.add_child(rarity_label)
 
-    container.mouse_filter = MOUSE_FILTER_STOP
+    container.mouse_filter = Control.MOUSE_FILTER_STOP
     var border_copy = border_color
     container.gui_input.connect(func _on_card_input(event):
         if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -238,6 +232,9 @@ func _get_rarity_text(rarity: String) -> String:
 
 func hide_upgrade() -> void:
     visible = false
+
+
+
 
 
 

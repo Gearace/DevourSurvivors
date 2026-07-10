@@ -14,9 +14,6 @@ extends Control
 
 # ─── 手势常量 ─────────────────────────────────────────
 ## SizeFlags 兼容值 (Godot 4.x/4.7)
-const SIZE_SHRINK_CENTER := 2
-const SIZE_SHRINK_END := 3
-const MOUSE_FILTER_PASS := 0
 
 # ─── 公开信号 ─────────────────────────────────────────
 signal moved(direction: Vector2)
@@ -45,8 +42,8 @@ func _ready() -> void:
     anchor_bottom = 1.0
     anchor_right = 0.5
     anchor_left = 0.5
-    size_flags_horizontal = SIZE_SHRINK_CENTER
-    size_flags_vertical = SIZE_SHRINK_END
+    size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+    size_flags_vertical = Control.SIZE_SHRINK_END
     
     # 设置大小
     custom_minimum_size = Vector2(outer_radius * 2.5, outer_radius * 2.5)
@@ -56,7 +53,7 @@ func _ready() -> void:
     _inner_pos = _center
     
     # 禁用鼠标 (只接受触摸)
-    mouse_filter = MOUSE_FILTER_PASS
+    mouse_filter = Control.MOUSE_FILTER_PASS
 
 func _process(delta: float) -> void:
     queue_redraw()

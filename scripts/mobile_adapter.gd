@@ -6,7 +6,6 @@ const VIEWPORT_WIDTH := 720
 const VIEWPORT_HEIGHT := 1280
 
 ## Godot 4.7 DisplayServer.WindowMode 兼容值
-const WINDOW_MODE_FULLSCREEN := 4
 
 func _ready() -> void:
     _setup_display()
@@ -22,7 +21,7 @@ func _setup_display() -> void:
     
     # 启用全屏（移动端）
     if OS.has_feature("android") or OS.has_feature("ios"):
-        DisplayServer.window_set_mode(WINDOW_MODE_FULLSCREEN)
+        DisplayServer.window_set_mode(4)
 
 ## 设置渲染参数
 func _setup_rendering() -> void:
@@ -60,3 +59,4 @@ func get_joystick_rect() -> Rect2:
         joystick_radius * 4,
         joystick_radius * 4
     )
+
