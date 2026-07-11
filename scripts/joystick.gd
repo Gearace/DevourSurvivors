@@ -39,11 +39,11 @@ var _drag_offset := Vector2.ZERO
 
 func _ready() -> void:
     # 设置锚点为底部居中
-    anchor_bottom = 1.0
-    anchor_right = 0.5
-    anchor_left = 0.5
-    size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-    size_flags_vertical = Control.SIZE_SHRINK_END
+    anchor_bottom = Anchor.ANCHOR_END
+    anchor_right = Anchor.ANCHOR_END
+    anchor_left = Anchor.ANCHOR_END
+    size_flags_horizontal = Control.SIZE_FILL
+    size_flags_vertical = Control.SIZE_FILL
     
     # 设置大小
     custom_minimum_size = Vector2(outer_radius * 2.5, outer_radius * 2.5)

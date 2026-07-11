@@ -927,41 +927,76 @@ project/
 
 ---
 
+
 ## 十四、开发进度追踪
 
-> **最后更新**: 2026-07-08
+> **最后更新**: 2026-07-11
 
 ### 里程碑状态
 
 | 里程碑 | 目标 | 状态 | 完成日期 | 提交哈希 |
 |---|---|---|---|---|
-| **M0** | 环境搭建 — 项目骨架 + GameManager + EventBus | ✅ 已完成 | 2026-07-08 | d71d646 |
-| **M1** | 操作原型 — 摇杆 + 手势识别 + 玩家移动 + 吞噬判定 | ✅ 已完成 | 2026-07-08 | dcedca4 |
-| **M2** | 敌人 AI — 敌人生成 + 逃跑行为 + 波次系统 | ✅ 已完成 | 2026-07-08 |  5ae5cb |
-| **M3** | 技能系统 — 11个技能 + 冷却管理 + 视觉效果 | ✅ 已完成 | 2026-07-08 | 58de565 |
-| **M4a** | 卡牌系统基础 — 升级弹窗 + 抽卡算法 + 牌组管理 | ✅ 已完成 | card_database.gd, upgrade_system.gd, upgrade_popup.gd, fusion_manager.gd | 43张卡牌 + 抽卡 + 保底 + 流派引导 + UI |
-| **M4b** | 融合进化系统 — 融合检测 + 触发 + 效果 | ✅ 已完成 | fusion_manager.gd | 7组融合配方 + 融合产物效果 |
-| **M4c** | 构筑验证与平衡 — Build验证 + 数值调优 | 🔄 进行中 | 待真机测试 | 4种经典Build待验证 |
-| **M5** | 内容填充 — 多类型敌人 + 技能池 + Boss + 10波 | 🔲 待开发 | — | — |
-| **M6** | 打磨上线 — 特效 + 音效 + 性能优化 + 导出 | 🔲 待开发 | — | — |
+| **M0** | 环境搭建 - 项目骨架 + GameManager + EventBus | DONE | 2026-07-08 | d71d646 |
+| **M1** | 操作原型 - 摇杆 + 手势识别 + 玩家移动 + 吞噬判定 | DONE | 2026-07-08 | dcedca4 |
+| **M2** | 敌人 AI - 敌人生成 + 逃跑行为 + 波次系统 | DONE | 2026-07-08 | 05ae5cb |
+| **M3** | 技能系统 - 11个技能 + 冷却管理 + 视觉效果 | DONE | 2026-07-08 | 58de565 |
+| **M4a** | 卡牌系统 - 43张卡牌 + 抽卡算法 + 保底 + 流派引导 + UI弹窗 | DONE | 2026-07-08 | a7c62ec |
+| **M4b** | 融合进化系统 - 7组融合配方 + 融合检测 + 效果应用 | DONE | 2026-07-08 | a7c62ec |
+| **M4c** | 构筑验证与平衡 - Build验证 + 数值调优 | IN_PROGRESS | 待真机测试 | - |
+| **M5** | 内容填充 - 多类型敌人 + Boss + 10波+ | TODO | - | - |
+| **M6** | 打磨上线 - 特效 + 音效 + 性能优化 + 导出 | TODO | - | - |
 
 ### 当前阶段
 
-**M0-M3 已完成，M4a/M4b 已完成 — 卡牌系统、抽卡算法、保底机制、流派引导、UI弹窗、融合系统全部实现**
+M0-M4b 已完成，Godot 4.7 兼容性修复完成，游戏可正常启动运行。
+
+### 2026-07-11 Godot 4.7 兼容性修复记录
+
+#### 脚本修复
+- upgrade_popup.gd: TEXT_AUTOWRAP_WORD_SMART, MOUSE_FILTER_STOP, MOUSE_BUTTON_LEFT 等过时 API
+- main_game_controller.gd: set_state(1/2) 魔法数字 -> GameState.PLAYING/PAUSED
+- gesture_detector.gd, mobile_adapter.gd: MOUSE_BUTTON_LEFT -> MouseButton.BUTTON_LEFT
+- joystick.gd: SIZE_SHRINK_CENTER/END -> SIZE_FILL
+- enemy_base.gd: reset(position) 参数名冲突 -> reset(pos)
+- upgrade_popup.gd: panel.offset_* -> panel.anchor_*
+- upgrade_popup.gd: layout_mode = 3 -> Control.LayoutMode.LAYOUT_MODE_ALWAYS
+- upgrade_popup.gd: vbox.alignment = 1 -> HORIZONTAL_ALIGNMENT_CENTER
+- upgrade_popup.gd: grow_horizontal/vertical = 2 -> Control.GROW_BEGIN
+- upgrade_popup.gd: func _on_card_input(event) lambda 语法 -> func(event)
+- upgrade_popup.gd: vbox.spacing = 12 -> add_theme_constant_override
+- main_game_controller.gd: const MouseButton.LEFT := 1 非法语法 -> 移除
+
+#### 场景与节点修复
+- enemy_base.tscn: AI 节点类型 Node -> Node2D
+- main_game.tscn: SkillSystem 节点类型 Node -> Node2D
+- main_game.tscn: World2D 节点移除（Godot 4.x 已废弃）
+- main_game.tscn: Joystick 节点移至 JoystickLayer 下（Control 必须渲染在 CanvasLayer 下）
+- main_game_controller.gd: get_node(Joystick) -> get_node(JoystickLayer/Joystick)
+- main_game_controller.gd: _skill_system 类型 Node -> Node2D
+- main_game_controller.gd: _player, _wave_spawner 节点赋值丢失修复
+
+#### 视口 API 修复
+- wave_spawner.gd, enemy_ai.gd, mobile_adapter.gd: get_visible_rect().size -> get_visible_rect_size()
 
 ### 累计交付文件统计
 
 | 类别 | 数量 | 说明 |
 |---|---|---|
-| 脚本 (.gd) | 14 | game_manager, gesture_detector, joystick, player_controller, enemy_base, enemy_ai, wave_spawner, object_pool, skill_data, skill_system, skill_effect, main_game_controller, mobile_adapter, event_bus |
-| 场景 (.tscn) | 5 | main_game, player, joystick, enemy_base, upgrade_popup(占位) |
+| 脚本 (.gd) | 24 | 全部脚本已修复 Godot 4.7 兼容性 |
+| 场景 (.tscn) | 5 | main_game, player, joystick, enemy_base, ui_hud |
 | 配置 | 3 | project.godot, export_presets.cfg, .gitignore |
 | 文档 | 1 | GDD_吞噬幸存者_v1.0.md |
-| Git 提交 | 4 | M0/M1/M2/M3 各一次 |
+| Git 提交 | 14 | M0-M4b + 修复提交 + Godot 4.7 兼容性修复 |
 
-### 下一步
+### 当前状态
 
-1. **M4a**: 生成卡牌数据库 + 升级弹窗 UI + 抽卡算法
-2. 在 Godot 中验证 M0-M3 的整体运行效果
-3. 确认手势识别在真机上的手感参数是否需要调整
+游戏可正常启动运行！玩家（绿色方块）出现在画面中央，敌人会生成并逃跑，虚拟摇杆在底部居中显示。
 
+### 待完成事项
+
+1. M4c: 构筑验证与数值平衡
+2. M5: 内容填充 - 更多敌人类型、Boss、10波+关卡
+3. M6: 打磨上线 - 粒子特效、音效、主菜单、HUD血条、移动端导出
+4. 已知问题: 无美术资源、无音频、技能效果简陋、HUD 不完整
+
+---

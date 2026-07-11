@@ -1,43 +1,38 @@
-[gd_scene format=3 load_steps=8 uid="uid://main_game_001"]
+[gd_scene format=3 uid="uid://j3ef4ruabe4f"]
 
-[ext_resource type="Script" path="res://scripts/main_game_controller.gd" id="1_main"]
-[ext_resource type="Script" path="res://scripts/event_bus.gd" id="3_event"]
-[ext_resource type="Script" path="res://scripts/object_pool.gd" id="4_pool"]
-[ext_resource type="Script" path="res://scripts/wave_spawner.gd" id="5_wave"]
-[ext_resource type="Script" path="res://scripts/skill_system.gd" id="6_skill"]
+[ext_resource type="Script" uid="uid://b5axhnjc326a3" path="res://scripts/main_game_controller.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://dyij4vlg2sygy" path="res://scripts/event_bus.gd" id="3_event"]
+[ext_resource type="Script" uid="uid://2ccin7nlpvjx" path="res://scripts/object_pool.gd" id="4_pool"]
+[ext_resource type="Script" uid="uid://bbfw86iasvnl1" path="res://scripts/wave_spawner.gd" id="5_wave"]
+[ext_resource type="Script" uid="uid://d1t7tgyvtc8ly" path="res://scripts/skill_system.gd" id="6_skill"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="7_player"]
 [ext_resource type="PackedScene" path="res://scenes/joystick.tscn" id="8_joystick"]
 
-[node name="MainGame" type="Node"]
+[node name="MainGame" type="Node" unique_id=67456584]
 script = ExtResource("1_main")
 
-[node name="EventBus" type="Node" parent="."]
+[node name="EventBus" type="Node" parent="." unique_id=97484272]
 script = ExtResource("3_event")
 
-[node name="Player" parent="." instance=ExtResource("7_player")]
-position = Vector2(360, 640)
+[node name="Player" parent="." unique_id=1743168360 instance=ExtResource("7_player")]
 
-[node name="Joystick" parent="." instance=ExtResource("8_joystick")]
 
-[node name="ObjectPool" type="Node2D" parent="."]
+
+[node name="ObjectPool" type="Node2D" parent="." unique_id=1519765096]
 script = ExtResource("4_pool")
-pool_node_path = "res://scenes/enemy_base.tscn"
-initial_size = 50
-max_size = 200
-
-[node name="WaveSpawner" type="Node" parent="."]
+[node name="WaveSpawner" type="Node" parent="." unique_id=612941509]
 script = ExtResource("5_wave")
-pool_node_path = "ObjectPool"
 
-[node name="SkillSystem" type="Node" parent="."]
+[node name="SkillSystem" type="Node2D" parent="." unique_id=982296757]
 script = ExtResource("6_skill")
 
-[node name="World2D" type="World2D" parent="."]
-
-[node name="HUD" type="CanvasLayer" parent="."]
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1725349717]
 layer = 10
 
-[node name="GameArea" type="Node2D" parent="HUD"]
+[node name="GameArea" type="Node2D" parent="HUD" unique_id=82245391]
 
-[node name="JoystickLayer" type="CanvasLayer" parent="."]
-layer = 20
+[node name="JoystickLayer" type="CanvasLayer" parent="." unique_id=1663224769]
+
+[node name="Joystick" type="Control" parent="JoystickLayer" unique_id=1959974330 instance=ExtResource("8_joystick")]
+anchors_preset = 7
+

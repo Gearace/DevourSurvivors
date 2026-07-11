@@ -54,7 +54,7 @@ func process_event(event: InputEventScreenTouch) -> GestureType:
 ## 处理鼠标事件 (用于编辑器测试)
 func process_mouse_event(event: InputEventMouseButton) -> GestureType:
     match event.button_index:
-        MOUSE_BUTTON_LEFT:
+        1:
             if event.pressed:
                 _on_touch_down(event.position)
             else:

@@ -21,7 +21,7 @@ func _setup_display() -> void:
     
     # 启用全屏（移动端）
     if OS.has_feature("android") or OS.has_feature("ios"):
-        DisplayServer.window_set_mode(4)
+        DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 ## 设置渲染参数
 func _setup_rendering() -> void:
