@@ -11,6 +11,27 @@ var _skill_system: Node2D
 var _captured_this_wave: int = 0
 
 func _ready() -> void:
+	# 动态创建无缝滚动背景层 (ParallaxBackground)
+	var bg_layer = ParallaxBackground.new()
+	bg_layer.name = "BackgroundLayer"
+	add_child(bg_layer)
+	
+	var parallax_layer = ParallaxLayer.new()
+	parallax_layer.name = "ParallaxLayer"
+	# 视差滚动速度比例：0.4 表示背景移动速度是人物移动速度的 40%，形成星空纵深感
+	parallax_layer.motion_scale = Vector2(0.4, 0.4) 
+	# 无缝镜像范围：匹配我们生成的背景图大小 720x1280
+	parallax_layer.motion_mirroring = Vector2(720, 1280)
+	bg_layer.add_child(parallax_layer)
+	
+	var bg_sprite = Sprite2D.new()
+	bg_sprite.name = "Background"
+	bg_sprite.texture = load("res://assets/backgrounds/bg_gameplay.png")
+	# 居中对准初始屏幕中心
+	bg_sprite.centered = true
+	bg_sprite.position = Vector2(360, 640)
+	parallax_layer.add_child(bg_sprite)
+
 	_player = get_node("Player") as CharacterBody2D
 	_joystick = get_node("JoystickLayer/Joystick") as Control
 	_wave_spawner = get_node("WaveSpawner")

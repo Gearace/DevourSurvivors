@@ -211,6 +211,7 @@ func _spawn_next_enemy() -> void:
 	
 	var entry = _spawn_queue.pop_front()
 	var type_data = entry.config
+	type_data["enemy_type"] = entry.get("type", "basic")
 	
 	# 生成位置：屏幕边缘随机点
 	var spawn_pos = _get_random_edge_position()

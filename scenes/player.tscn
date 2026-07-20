@@ -6,9 +6,4 @@
 script = ExtResource("1_player")
 position = Vector2(360, 640)
 
-[node name="Body" type="ColorRect" parent="."]
-offset_left = -20.0
-offset_top = -20.0
-offset_right = 20.0
-offset_bottom = 20.0
-color = Color(0.3, 0.8, 0.4, 1)
+[node name="Body" type="Sprite2D" parent="."]

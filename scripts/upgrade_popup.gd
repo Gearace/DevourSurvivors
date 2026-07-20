@@ -42,7 +42,15 @@ func _build_ui() -> void:
 	panel.layout_mode = 1
 	panel.anchor_left = Anchor.ANCHOR_BEGIN; panel.anchor_top = Anchor.ANCHOR_BEGIN; panel.anchor_right = Anchor.ANCHOR_END; panel.anchor_bottom = Anchor.ANCHOR_END
 	
-	
+	var panel_style = StyleBoxTexture.new()
+	var tex = load("res://assets/ui/panels/ui_upgrade_panel.png")
+	if tex:
+		panel_style.texture = tex
+		panel_style.texture_margin_left = 20
+		panel_style.texture_margin_right = 20
+		panel_style.texture_margin_top = 20
+		panel_style.texture_margin_bottom = 20
+		panel.add_theme_stylebox_override("panel", panel_style)
 	
 	add_child(panel)
 	
@@ -83,9 +91,22 @@ func _build_ui() -> void:
 	# Confirm Button
 	confirm_btn = Button.new()
 	confirm_btn.name = "ConfirmButton"
-	confirm_btn.custom_minimum_size = Vector2(0, 50)
+	confirm_btn.custom_minimum_size = Vector2(200, 50)
 	confirm_btn.text = "确认选择"
 	confirm_btn.disabled = true
+	
+	var btn_style = StyleBoxTexture.new()
+	var btn_tex = load("res://assets/ui/buttons/ui_button_confirm.png")
+	if btn_tex:
+		btn_style.texture = btn_tex
+		btn_style.texture_margin_left = 8
+		btn_style.texture_margin_right = 8
+		btn_style.texture_margin_top = 8
+		btn_style.texture_margin_bottom = 8
+		confirm_btn.add_theme_stylebox_override("normal", btn_style)
+		confirm_btn.add_theme_stylebox_override("hover", btn_style)
+		confirm_btn.add_theme_stylebox_override("pressed", btn_style)
+		
 	vbox.add_child(confirm_btn)
 	
 	confirm_btn.pressed.connect(_on_confirm_pressed)
@@ -123,10 +144,10 @@ func _create_card_ui(card: Dictionary, idx: int) -> Control:
 	style.border_width_left = 4
 	var border_color = rarity_colors.get(card.get("rarity", "Common"), Color.WHITE)
 	style.border_color = border_color
-	style.expand_margins_left = 2
-	style.expand_margins_right = 2
-	style.expand_margins_top = 2
-	style.expand_margins_bottom = 2
+	style.expand_margin_left = 2
+	style.expand_margin_right = 2
+	style.expand_margin_top = 2
+	style.expand_margin_bottom = 2
 	container.add_theme_stylebox_override("panel", style)
 
 	var name_label = Label.new()

@@ -187,127 +187,125 @@ func setup_aura(center: Vector2, effects: Dictionary) -> void:
 func _create_beam_visual(effects: Dictionary) -> void:
     var length = effects.get("length", 300.0)
     var width = effects.get("width", 40.0)
-    var color = effects.get("color", Color(0.3, 1.0, 0.5))
     
-    var rect = ColorRect.new()
-    rect.size = Vector2(length, width)
-    rect.position = -rect.size / 2
-    rect.color = color
-    add_child(rect)
-    _visuals.push_back(rect)
+    var sprite = Sprite2D.new()
+    sprite.texture = load("res://assets/sprites/skills/fx_beam.png")
+    if sprite.texture:
+        var size = sprite.texture.get_size()
+        sprite.scale = Vector2(length / size.x, width / size.y)
+    add_child(sprite)
+    _visuals.push_back(sprite)
 
 func _create_spiral_visual(effects: Dictionary) -> void:
     var radius = effects.get("radius", 100.0)
-    var color = effects.get("color", Color(0.2, 0.8, 0.3))
     
-    var circle = ColorRect.new()
-    circle.size = Vector2(radius * 2, radius * 2)
-    circle.position = -radius
-    circle.color = color
-    add_child(circle)
-    _visuals.push_back(circle)
+    var sprite = Sprite2D.new()
+    sprite.texture = load("res://assets/sprites/skills/fx_spiral.png")
+    if sprite.texture:
+        var size = sprite.texture.get_size()
+        sprite.scale = Vector2((radius * 2) / size.x, (radius * 2) / size.y)
+    add_child(sprite)
+    _visuals.push_back(sprite)
 
 func _create_tracking_visual(effects: Dictionary) -> void:
     var count = effects.get("count", 3)
-    var color = effects.get("color", Color(0.4, 1.0, 0.6))
     
     for i in range(count):
-        var orb = ColorRect.new()
-        orb.size = Vector2(10, 10)
-        orb.position = Vector2(-5, -5)
-        orb.color = color
-        add_child(orb)
-        _visuals.push_back(orb)
+        var sprite = Sprite2D.new()
+        sprite.texture = load("res://assets/sprites/skills/fx_tracking_orb.png")
+        var angle = (TAU / count) * i
+        sprite.position = Vector2(cos(angle) * 30.0, sin(angle) * 30.0)
+        add_child(sprite)
+        _visuals.push_back(sprite)
 
 func _create_blackhole_visual(effects: Dictionary) -> void:
     var radius = effects.get("radius", 80.0)
-    var color = effects.get("color", Color(0.5, 0.2, 1.0))
     
-    var circle = ColorRect.new()
-    circle.size = Vector2(radius * 2, radius * 2)
-    circle.position = -radius
-    circle.color = color
-    add_child(circle)
-    _visuals.push_back(circle)
+    var sprite = Sprite2D.new()
+    sprite.texture = load("res://assets/sprites/skills/fx_blackhole.png")
+    if sprite.texture:
+        var size = sprite.texture.get_size()
+        sprite.scale = Vector2((radius * 2) / size.x, (radius * 2) / size.y)
+    add_child(sprite)
+    _visuals.push_back(sprite)
 
 func _create_line_visual(effects: Dictionary) -> void:
     var length = effects.get("length", 400.0)
     var width = effects.get("width", 10.0)
-    var color = effects.get("color", Color(1.0, 0.3, 0.3))
     
-    var rect = ColorRect.new()
-    rect.size = Vector2(length, width)
-    rect.position = -rect.size / 2
-    rect.color = color
-    add_child(rect)
-    _visuals.push_back(rect)
+    var sprite = Sprite2D.new()
+    sprite.texture = load("res://assets/sprites/skills/fx_line_cut.png")
+    if sprite.texture:
+        var size = sprite.texture.get_size()
+        sprite.scale = Vector2(length / size.x, width / size.y)
+    add_child(sprite)
+    _visuals.push_back(sprite)
 
 func _create_summon_visual(effects: Dictionary) -> void:
     var count = effects.get("count", 3)
-    var color = effects.get("color", Color(0.3, 0.5, 0.8, 0.6))
     
     for i in range(count):
-        var clone = ColorRect.new()
-        clone.size = Vector2(30, 30)
-        clone.position = Vector2(-15, -15)
-        clone.color = color
-        add_child(clone)
-        _visuals.push_back(clone)
+        var sprite = Sprite2D.new()
+        sprite.texture = load("res://assets/sprites/skills/fx_shadow_clone.png")
+        var angle = (TAU / count) * i
+        sprite.position = Vector2(cos(angle) * 50.0, sin(angle) * 50.0)
+        add_child(sprite)
+        _visuals.push_back(sprite)
 
 func _create_slow_visual(effects: Dictionary) -> void:
     var radius = effects.get("radius", 200.0)
-    var color = effects.get("color", Color(0.4, 0.2, 0.6, 0.4))
     
-    var circle = ColorRect.new()
-    circle.size = Vector2(radius * 2, radius * 2)
-    circle.position = -radius
-    circle.color = color
-    add_child(circle)
-    _visuals.push_back(circle)
+    var sprite = Sprite2D.new()
+    sprite.texture = load("res://assets/sprites/skills/fx_shadow_bind.png")
+    if sprite.texture:
+        var size = sprite.texture.get_size()
+        sprite.scale = Vector2((radius * 2) / size.x, (radius * 2) / size.y)
+    add_child(sprite)
+    _visuals.push_back(sprite)
 
 func _create_copy_visual(effects: Dictionary) -> void:
     var radius = effects.get("radius", 150.0)
-    var color = effects.get("color", Color(0.8, 0.6, 1.0, 0.3))
     
-    var circle = ColorRect.new()
-    circle.size = Vector2(radius * 2, radius * 2)
-    circle.position = -radius
-    circle.color = color
-    add_child(circle)
-    _visuals.push_back(circle)
+    var sprite = Sprite2D.new()
+    sprite.texture = load("res://assets/sprites/skills/fx_mirror_domain.png")
+    if sprite.texture:
+        var size = sprite.texture.get_size()
+        sprite.scale = Vector2((radius * 2) / size.x, (radius * 2) / size.y)
+    add_child(sprite)
+    _visuals.push_back(sprite)
 
 func _create_freeze_visual(screen_size: Vector2) -> void:
-    var color = Color(0.6, 0.8, 1.0, 0.5)
-    
-    # 全屏半透明冰蓝覆盖
-    var overlay = ColorRect.new()
-    overlay.size = screen_size
-    overlay.position = Vector2.ZERO
-    overlay.color = color
-    add_child(overlay)
-    _visuals.push_back(overlay)
+    var sprite = Sprite2D.new()
+    sprite.texture = load("res://assets/sprites/skills/fx_freeze.png")
+    if sprite.texture:
+        var size = sprite.texture.get_size()
+        sprite.scale = Vector2(screen_size.x / size.x, screen_size.y / size.y)
+        # Center in screen coordinates
+        sprite.position = screen_size / 2
+    add_child(sprite)
+    _visuals.push_back(sprite)
 
 func _create_pull_visual(effects: Dictionary) -> void:
     var radius = effects.get("radius", 250.0)
-    var color = effects.get("color", Color(0.9, 0.5, 0.2))
     
-    var circle = ColorRect.new()
-    circle.size = Vector2(radius * 2, radius * 2)
-    circle.position = -radius
-    circle.color = color
-    add_child(circle)
-    _visuals.push_back(circle)
+    var sprite = Sprite2D.new()
+    sprite.texture = load("res://assets/sprites/skills/fx_pull.png")
+    if sprite.texture:
+        var size = sprite.texture.get_size()
+        sprite.scale = Vector2((radius * 2) / size.x, (radius * 2) / size.y)
+    add_child(sprite)
+    _visuals.push_back(sprite)
 
 func _create_aura_visual(effects: Dictionary) -> void:
     var radius = effects.get("radius", 80.0)
-    var color = effects.get("color", Color(1.0, 0.8, 0.0, 0.3))
     
-    var circle = ColorRect.new()
-    circle.size = Vector2(radius * 2, radius * 2)
-    circle.position = -radius
-    circle.color = color
-    add_child(circle)
-    _visuals.push_back(circle)
+    var sprite = Sprite2D.new()
+    sprite.texture = load("res://assets/sprites/skills/fx_aura.png")
+    if sprite.texture:
+        var size = sprite.texture.get_size()
+        sprite.scale = Vector2((radius * 2) / size.x, (radius * 2) / size.y)
+    add_child(sprite)
+    _visuals.push_back(sprite)
 
 ## ── 效果逻辑更新 ──
 

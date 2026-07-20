@@ -23,6 +23,15 @@ var _wander_timer: float = 0.0
 var _velocity: Vector2 = Vector2.ZERO
 var _fear_shake: float = 0.0
 
+var textures: Dictionary = {
+	"basic": preload("res://assets/sprites/enemies/enemy_basic.png"),
+	"swift": preload("res://assets/sprites/enemies/enemy_swift.png"),
+	"heavy": preload("res://assets/sprites/enemies/enemy_heavy.png"),
+	"split": preload("res://assets/sprites/enemies/enemy_split.png"),
+	"decoy": preload("res://assets/sprites/enemies/enemy_decoy.png"),
+	"boss": preload("res://assets/sprites/enemies/enemy_boss.png")
+}
+
 # ─── 信号 ─────────────────────────────────────────
 signal enemy_died(enemy_type: String, position: Vector2)
 signal enemy_captured(value: float)
@@ -38,6 +47,7 @@ func _ready() -> void:
 	set_meta("max_hp", max_hp)
 	current_hp = max_hp
 	print("[Enemy(", enemy_type, ")] 初始化 — 速度:", speed, " 半径:", body_radius)
+	_update_visuals()
 
 func _physics_process(delta: float) -> void:
 	if not active:
@@ -60,9 +70,15 @@ func reset(pos: Vector2, type_data: Dictionary = {}) -> void:
 	_fear_shake = 0.0
 	is_fleeing = false
 	if not type_data.is_empty():
+		if type_data.has("enemy_type"):
+			enemy_type = type_data["enemy_type"]
+			set_meta("enemy_type", enemy_type)
 		if type_data.has("speed"): speed = type_data["speed"]
-		if type_data.has("body_radius"): body_radius = type_data["body_radius"]
+		if type_data.has("body_radius"): 
+			body_radius = type_data["body_radius"]
+			set_meta("body_radius", body_radius)
 		if type_data.has("color"): color = type_data["color"]
+		_update_visuals()
 
 
 ## 敌人死亡
@@ -88,11 +104,20 @@ func _death_cleanup() -> void:
 
 ## 更新视觉
 func _update_visuals() -> void:
-
 	var body = get_node_or_null("Body")
-	if body and body is ColorRect:
+	if body and body is Sprite2D:
+		if textures.has(enemy_type):
+			body.texture = textures[enemy_type]
+		if body.texture:
+			var tex_size = body.texture.get_size()
+			if tex_size.x > 0:
+				var s = (body_radius * 2.0) / tex_size.x
+				body.scale = Vector2(s, s)
+		body.self_modulate = Color.WHITE
+	elif body and body is ColorRect:
 		body.color = color
 		body.custom_minimum_size = Vector2(body_radius * 2, body_radius * 2)
+		body.position = Vector2(-body_radius, -body_radius)
 	if not body:
 		body = ColorRect.new()
 		body.name = "Body"
