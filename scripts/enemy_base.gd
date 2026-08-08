@@ -58,6 +58,9 @@ func _physics_process(delta: float) -> void:
 		position += Vector2(randf() - 0.5, randf() - 0.5) * _fear_shake * 5.0
 	# 更新位置
 	global_position += _velocity * delta
+	# 边界限制 (固定 720x1280 场地)
+	global_position.x = clamp(global_position.x, body_radius, 720.0 - body_radius)
+	global_position.y = clamp(global_position.y, body_radius, 1280.0 - body_radius)
 
 ## 重置敌人到可用状态 (对象池用)
 func reset(pos: Vector2, type_data: Dictionary = {}) -> void:

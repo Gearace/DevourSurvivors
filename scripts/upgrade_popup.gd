@@ -1,6 +1,6 @@
-extends Control
+extends CanvasLayer
 ## upgrade_popup.gd
-## 升级弹窗控制器 — 通过代码动态创建UI，无场景依赖
+## 升级弹窗控制器 — 作为 CanvasLayer (Layer 100) 悬浮于视口顶端，不受相机缩放和位移影响
 
 signal card_confirmed(card: Dictionary)
 
@@ -13,7 +13,6 @@ var overlay: ColorRect
 var current_cards: Array[Dictionary] = []
 var selected_card_idx: int = -1
 
-
 var rarity_colors: Dictionary = {
 	"Common": Color(0.6, 0.8, 0.6, 1.0),
 	"Uncommon": Color(0.4, 0.6, 1.0, 1.0),
@@ -22,6 +21,7 @@ var rarity_colors: Dictionary = {
 }
 
 func _ready() -> void:
+	layer = 100 # 确保处于 UI 最上层
 	_build_ui()
 	visible = false
 
@@ -29,18 +29,27 @@ func _build_ui() -> void:
 	# Overlay (全屏遮罩)
 	overlay = ColorRect.new()
 	overlay.name = "Overlay"
-	overlay.anchor_right = Anchor.ANCHOR_END
-	overlay.anchor_bottom = Anchor.ANCHOR_END
+	overlay.anchor_right = 1.0
+	overlay.anchor_bottom = 1.0
 	overlay.grow_horizontal = 2
 	overlay.grow_vertical = 2
 	overlay.color = Color(0, 0, 0, 0.7)
 	add_child(overlay)
 	
-	# Panel (主面板)
+	# Panel (主面板 - 居中显示 720x800)
 	panel = Panel.new()
 	panel.name = "Panel"
-	panel.layout_mode = 1
-	panel.anchor_left = Anchor.ANCHOR_BEGIN; panel.anchor_top = Anchor.ANCHOR_BEGIN; panel.anchor_right = Anchor.ANCHOR_END; panel.anchor_bottom = Anchor.ANCHOR_END
+	panel.anchor_left = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_top = 0.5
+	panel.anchor_bottom = 0.5
+	panel.grow_horizontal = 2
+	panel.grow_vertical = 2
+	panel.custom_minimum_size = Vector2(720, 800)
+	panel.offset_left = -360
+	panel.offset_right = 360
+	panel.offset_top = -400
+	panel.offset_bottom = 400
 	
 	var panel_style = StyleBoxTexture.new()
 	var tex = load("res://assets/ui/panels/ui_upgrade_panel.png")
@@ -54,11 +63,19 @@ func _build_ui() -> void:
 	
 	add_child(panel)
 	
-	# VBox (垂直布局)
+	# VBox (垂直布局，填满 panel 并预留内边距)
 	var vbox = VBoxContainer.new()
 	vbox.name = "VBox"
-	vbox.add_theme_constant_override("separation", 12)
-	vbox.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.anchor_left = 0.0
+	vbox.anchor_top = 0.0
+	vbox.anchor_right = 1.0
+	vbox.anchor_bottom = 1.0
+	vbox.offset_left = 40
+	vbox.offset_top = 40
+	vbox.offset_right = -40
+	vbox.offset_bottom = -40
+	vbox.add_theme_constant_override("separation", 16)
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	panel.add_child(vbox)
 	
 	# Title
@@ -71,27 +88,29 @@ func _build_ui() -> void:
 	title_label.self_modulate = Color(1, 0.85, 0.3, 1)
 	vbox.add_child(title_label)
 	
-	# Use a simple spacer instead
+	# Spacer
 	var spacer = Control.new()
-	spacer.custom_minimum_size = Vector2(0, 5)
+	spacer.custom_minimum_size = Vector2(0, 10)
 	vbox.add_child(spacer)
 	
-	# Card Grid
+	# Card Grid (居中对齐)
 	card_grid = GridContainer.new()
 	card_grid.name = "CardGrid"
-	card_grid.custom_minimum_size = Vector2(0, 200)
 	card_grid.columns = 2
-	# Use theme override for separation
+	card_grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	card_grid.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	
 	var ui_theme = Theme.new()
-	ui_theme.set_constant("h_separation", "GridContainer", 16)
-	ui_theme.set_constant("v_separation", "GridContainer", 16)
+	ui_theme.set_constant("h_separation", "GridContainer", 20)
+	ui_theme.set_constant("v_separation", "GridContainer", 20)
 	card_grid.theme = ui_theme
 	vbox.add_child(card_grid)
 	
 	# Confirm Button
 	confirm_btn = Button.new()
 	confirm_btn.name = "ConfirmButton"
-	confirm_btn.custom_minimum_size = Vector2(200, 50)
+	confirm_btn.custom_minimum_size = Vector2(240, 55)
+	confirm_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	confirm_btn.text = "确认选择"
 	confirm_btn.disabled = true
 	
@@ -115,54 +134,86 @@ func show_upgrade(cards: Array[Dictionary]) -> void:
 	current_cards = cards
 	selected_card_idx = -1
 	confirm_btn.disabled = true
+	
 	for child in card_grid.get_children():
 		card_grid.remove_child(child)
 		child.queue_free()
+		
 	for i in cards.size():
 		var card = cards[i]
 		var card_node = _create_card_ui(card, i)
 		card_grid.add_child(card_node)
+		
 	for j in range(4 - cards.size()):
 		var empty = _create_empty_card_slot()
 		card_grid.add_child(empty)
+		
 	visible = true
+	panel.modulate = Color.TRANSPARENT
 	var tween = create_tween()
-	tween.tween_property(panel, "modulate", Color(1, 1, 1, 1), 0.3)
+	tween.tween_property(panel, "modulate", Color.WHITE, 0.25)
 	print("[UpgradePopup] 显示 %d 张卡牌" % cards.size())
 
 func _create_card_ui(card: Dictionary, idx: int) -> Control:
-	var container = VBoxContainer.new()
-	container.custom_minimum_size = Vector2(180, 220)
-	container.set("theme_override_constants/separation", 8)
+	var card_panel = PanelContainer.new()
+	card_panel.custom_minimum_size = Vector2(180, 220)
+	
+	var card_style = StyleBoxTexture.new()
+	var rarity = card.get("rarity", "Common")
+	var tex_path = "res://assets/ui/cards/ui_card_common.png"
+	match rarity:
+		"Uncommon": tex_path = "res://assets/ui/cards/ui_card_uncommon.png"
+		"Legendary": tex_path = "res://assets/ui/cards/ui_card_legendary.png"
+		"Relic": tex_path = "res://assets/ui/cards/ui_card_relic.png"
+		
+	var card_tex = load(tex_path)
+	if card_tex:
+		card_style.texture = card_tex
+		card_style.texture_margin_left = 12
+		card_style.texture_margin_right = 12
+		card_style.texture_margin_top = 12
+		card_style.texture_margin_bottom = 12
+	else:
+		# Fallback to flat style
+		var fallback = StyleBoxFlat.new()
+		fallback.bg_color = Color(0.15, 0.15, 0.2, 1.0)
+		fallback.corner_radius_top_left = 6
+		fallback.corner_radius_top_right = 6
+		fallback.corner_radius_bottom_left = 6
+		fallback.corner_radius_bottom_right = 6
+		fallback.border_width_left = 4
+		fallback.border_color = rarity_colors.get(rarity, Color.WHITE)
+		card_style = fallback
+		
+	card_panel.add_theme_stylebox_override("panel", card_style.duplicate())
+	
+	# MarginContainer for internal padding
+	var margin = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 14)
+	margin.add_theme_constant_override("margin_right", 14)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_bottom", 16)
+	card_panel.add_child(margin)
 
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.15, 0.15, 0.2, 1.0)
-	style.corner_radius_top_left = 6
-	style.corner_radius_top_right = 6
-	style.corner_radius_bottom_left = 6
-	style.corner_radius_bottom_right = 6
-	style.border_width_left = 4
-	var border_color = rarity_colors.get(card.get("rarity", "Common"), Color.WHITE)
-	style.border_color = border_color
-	style.expand_margin_left = 2
-	style.expand_margin_right = 2
-	style.expand_margin_top = 2
-	style.expand_margin_bottom = 2
-	container.add_theme_stylebox_override("panel", style)
+	var container = VBoxContainer.new()
+	container.set("theme_override_constants/separation", 8)
+	margin.add_child(container)
+
+	var border_color = rarity_colors.get(rarity, Color.WHITE)
 
 	var name_label = Label.new()
 	name_label.text = card.get("name", "Unknown")
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	name_label.custom_minimum_size = Vector2(160, 40)
-	name_label.add_theme_font_size_override("font_size", 18)
+	name_label.custom_minimum_size = Vector2(152, 40)
+	name_label.add_theme_font_size_override("font_size", 16)
 	name_label.self_modulate = border_color
 	container.add_child(name_label)
 
 	var cat_label = Label.new()
 	cat_label.text = card.get("category", "") + " " + card.get("rarity", "")
 	cat_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	cat_label.add_theme_font_size_override("font_size", 12)
+	cat_label.add_theme_font_size_override("font_size", 11)
 	cat_label.self_modulate = Color(0.7, 0.7, 0.7, 1.0)
 	container.add_child(cat_label)
 
@@ -170,33 +221,37 @@ func _create_card_ui(card: Dictionary, idx: int) -> Control:
 	desc_label.text = card.get("description", "")
 	desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc_label.custom_minimum_size = Vector2(160, 60)
-	desc_label.add_theme_font_size_override("font_size", 13)
+	desc_label.custom_minimum_size = Vector2(152, 50)
+	desc_label.add_theme_font_size_override("font_size", 12)
 	desc_label.self_modulate = Color(0.9, 0.9, 0.9, 1.0)
 	container.add_child(desc_label)
 
 	var rarity_label = Label.new()
-	rarity_label.text = _get_rarity_text(card.get("rarity", "Common"))
+	rarity_label.text = _get_rarity_text(rarity)
 	rarity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	rarity_label.add_theme_font_size_override("font_size", 11)
+	rarity_label.add_theme_font_size_override("font_size", 10)
 	rarity_label.self_modulate = border_color
 	container.add_child(rarity_label)
 
+	# Click mechanics
+	card_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	container.mouse_filter = Control.MOUSE_FILTER_PASS
+	margin.mouse_filter = Control.MOUSE_FILTER_PASS
+
 	var border_copy = border_color
-	container.gui_input.connect(func(event):
+	card_panel.gui_input.connect(func(event):
 		if event is InputEventMouseButton and event.pressed and event.button_index == 1:
-			_select_card(idx, container, style, border_copy)
+			_select_card(idx, card_panel, card_style, border_copy)
 	)
 
-	container.set_meta("card_index", idx)
-	container.set_meta("card_data", card)
-	return container
+	card_panel.set_meta("card_index", idx)
+	card_panel.set_meta("card_data", card)
+	return card_panel
 
 func _create_empty_card_slot() -> Control:
-	var container = VBoxContainer.new()
-	container.custom_minimum_size = Vector2(180, 220)
-	container.set("theme_override_constants/separation", 8)
+	var card_panel = PanelContainer.new()
+	card_panel.custom_minimum_size = Vector2(180, 220)
+	
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.1, 0.1, 0.15, 0.5)
 	style.corner_radius_top_left = 6
@@ -205,24 +260,36 @@ func _create_empty_card_slot() -> Control:
 	style.corner_radius_bottom_right = 6
 	style.border_width_left = 2
 	style.border_color = Color(0.3, 0.3, 0.3, 0.5)
-	container.add_theme_stylebox_override("panel", style)
+	card_panel.add_theme_stylebox_override("panel", style)
+	
 	var label = Label.new()
-	label.text = "牌组已满"
+	label.text = "槽位已空"
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", 14)
 	label.self_modulate = Color(0.5, 0.5, 0.5, 1.0)
-	container.add_child(label)
-	return container
+	card_panel.add_child(label)
+	return card_panel
 
-func _select_card(idx: int, container: Control, _orig_style: StyleBoxFlat, orig_border: Color) -> void:
+func _select_card(idx: int, container: Control, orig_style: StyleBox, orig_border: Color) -> void:
 	for child in card_grid.get_children():
 		if child.has_meta("highlighted") and child.get_meta("highlighted"):
 			child.set_meta("highlighted", false)
+			var old_style = child.get_theme_stylebox("panel")
+			if old_style is StyleBoxFlat:
+				old_style.border_color = child.get_meta("orig_border")
+			elif old_style is StyleBoxTexture:
+				old_style.modulate = Color.WHITE
+				
 	container.set_meta("highlighted", true)
 	container.set_meta("orig_border", orig_border)
+	
 	var s = container.get_theme_stylebox("panel")
 	if s is StyleBoxFlat:
 		s.border_color = Color(1.0, 1.0, 1.0, 1.0)
+	elif s is StyleBoxTexture:
+		s.modulate = Color(1.4, 1.4, 1.4, 1.0) # 高亮选中卡牌
+		
 	selected_card_idx = idx
 	confirm_btn.disabled = false
 

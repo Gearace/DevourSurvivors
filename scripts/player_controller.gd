@@ -45,6 +45,11 @@ func _ready() -> void:
 	# 动态创建镜头，使其跟随玩家移动
 	var camera = Camera2D.new()
 	camera.name = "Camera2D"
+	camera.zoom = Vector2(4.0, 4.0) # 镜头推进 4 倍，角色/怪物变大，视野更加开阔且细节饱满
+	camera.limit_left = 0
+	camera.limit_top = 0
+	camera.limit_right = 720
+	camera.limit_bottom = 1280
 	add_child(camera)
 	camera.make_current()
 	
@@ -58,6 +63,10 @@ func _process(delta: float) -> void:
 	# 平滑移动
 	velocity = _current_direction * base_speed * _speed_multiplier
 	move_and_slide()
+	
+	# 边界限制 (固定 720x1280 场地，保留半半径的安全范围以免穿帮)
+	global_position.x = clamp(global_position.x, body_radius, 720.0 - body_radius)
+	global_position.y = clamp(global_position.y, body_radius, 1280.0 - body_radius)
 	
 	# 定期执行吞噬判定 (每 0.1s 一次，避免每帧计算)
 	_last_capture_check -= delta

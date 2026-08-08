@@ -223,18 +223,18 @@ func _spawn_next_enemy() -> void:
 
 ## 获取屏幕边缘随机位置
 func _get_random_edge_position() -> Vector2:
-	var screen_size = _get_screen_size()
 	var edge: int = randi() % 4  # 0=top, 1=right, 2=bottom, 3=left
+	var margin: float = 10.0
 	
 	match edge:
 		0:  # 上边缘
-			return Vector2(randf() * screen_size.x, -30.0)
+			return Vector2(randf() * 720.0, margin)
 		1:  # 右边缘
-			return Vector2(screen_size.x + 30.0, randf() * screen_size.y * 0.6)
+			return Vector2(720.0 - margin, randf() * 1280.0)
 		2:  # 下边缘
-			return Vector2(randf() * screen_size.x, screen_size.y + 30.0)
+			return Vector2(randf() * 720.0, 1280.0 - margin)
 		3:  # 左边缘
-			return Vector2(-30.0, randf() * screen_size.y * 0.6)
+			return Vector2(margin, randf() * 1280.0)
 	
 	return Vector2.ZERO
 
