@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://bbfw86iasvnl1" path="res://scripts/wave_spawner.gd" id="5_wave"]
 [ext_resource type="Script" uid="uid://d1t7tgyvtc8ly" path="res://scripts/skill_system.gd" id="6_skill"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="7_player"]
+[ext_resource type="Script" path="res://scripts/hud_controller.gd" id="7_hud"]
 [ext_resource type="PackedScene" path="res://scenes/joystick.tscn" id="8_joystick"]
 
 [node name="MainGame" type="Node" unique_id=67456584]
@@ -27,6 +28,7 @@ script = ExtResource("5_wave")
 script = ExtResource("6_skill")
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1725349717]
+script = ExtResource("7_hud")
 layer = 10
 
 [node name="GameArea" type="Node2D" parent="HUD" unique_id=82245391]

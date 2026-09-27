@@ -9,6 +9,8 @@ var _wave_spawner: Node
 var _pool: Node2D
 var _skill_system: Node2D
 var _captured_this_wave: int = 0
+var _shake_timer: float = 0.0
+var _shake_intensity: float = 0.0
 
 func _ready() -> void:
 	# 动态创建固定场地背景 (720x1280)
@@ -38,6 +40,11 @@ func _ready() -> void:
 	# 连接波次信号
 	_wave_spawner.wave_starting.connect(_on_wave_starting)
 	_wave_spawner.wave_complete.connect(_on_wave_complete)
+
+	# 连接屏幕抖动信号
+	var bus = get_node_or_null("EventBus")
+	if bus and bus.has_signal("screen_shake"):
+		bus.screen_shake.connect(_on_screen_shake)
 	
 	# 连接吞噬信号
 	_player.player_captured_enemy.connect(_on_player_captured)
@@ -104,3 +111,11 @@ func _unhandled_input(event: InputEvent) -> void:
 				gm.set_state(GameManager.GameState.PAUSED)
 			elif gm.current_state == 2:
 				gm.set_state(GameManager.GameState.PLAYING)
+## 响应屏幕抖动 (来自 EventBus)
+func _on_screen_shake(duration: float, intensity: float) -> void:
+	_shake_timer = duration
+	_shake_intensity = intensity
+func _get_player_camera() -> Node:
+	if _player and _player.has_node("Camera2D"):
+		return _player.get_node("Camera2D")
+	return null

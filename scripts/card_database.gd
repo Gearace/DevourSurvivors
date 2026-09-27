@@ -39,7 +39,8 @@ static func get_component_cards() -> Array[Dictionary]:
 		{"id": "capture_accelerate", "name": "吞噬加速", "category": "Component", "rarity": "Common", "description": "低血量时吞噬收益+30%", "stats": {"low_hp_capture_bonus": 0.3, "low_hp_threshold": 0.2}},
 		{"id": "energy_flow_back", "name": "能量回流", "category": "Component", "rarity": "Uncommon", "description": "技能未命中时返还50%能量", "stats": {"energy_refund_on_miss": 0.5}},
 		{"id": "extreme_squeeze", "name": "极限压榨", "category": "Component", "rarity": "Common", "description": "血量低于20%时攻击+50%", "stats": {"low_hp_attack_bonus": 0.5, "low_hp_threshold": 0.2}},
-		{"id": "perpetual_engine", "name": "永动引擎", "category": "Component", "rarity": "Uncommon", "description": "每秒自动恢复1点能量", "stats": {"energy_regen_per_second": 1}}
+		{"id": "perpetual_engine", "name": "永动引擎", "category": "Component", "rarity": "Uncommon", "description": "每秒自动恢复1点能量", "stats": {"energy_regen_per_second": 1}},
+		{"id": "gnaw_steady", "name": "坚韧下颚", "category": "Component", "rarity": "Uncommon", "description": "啃食大怪时挣脱概率-40%（更稳）", "stats": {"escape_chance_reduction": 0.4}, "special": "啃食进度更稳定，大怪更难挣脱"}
 	]
 
 # ========== 共鸣卡 (12张) ==========

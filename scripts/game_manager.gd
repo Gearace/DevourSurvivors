@@ -33,6 +33,9 @@ var player_stats: Dictionary = {
 	"skill_cd_multiplier": 1.0,
 	"total_captured": 0,
 	"score": 0,
+	# 能量系统 (啃食燃料，GDD 3.2.4)
+	"energy": 10.0,
+	"max_energy": 10.0,
 }
 
 # 波次数据
@@ -55,9 +58,49 @@ var fusion_results: Dictionary = {}  # 存储已触发的融合结果
 # 难度系数 (随波次递增)
 var difficulty_multiplier: float = 1.0
 
+# 能量常量
+const ENERGY_REGEN_PER_SEC := 0.5   # 自然能量回复
+const ENERGY_REGEN_TICK := 0.5      # 回复计时间隔
+
+var _energy_regen_timer: float = 0.0
+
 func _ready() -> void:
 	add_to_group("game_manager")
 	print("[GameManager] 初始化完成 — 吞噬幸存者 v1.0")
+
+func _process(delta: float) -> void:
+	# 游戏中自然回能 (与卡牌能量回复叠加)
+	if is_playing():
+		_energy_regen_timer -= delta
+		if _energy_regen_timer <= 0.0:
+			_energy_regen_timer = ENERGY_REGEN_TICK
+			regenerate_energy(ENERGY_REGEN_PER_SEC * ENERGY_REGEN_TICK)
+
+## 能量 API
+
+## 当前能量
+func get_energy() -> float:
+	return player_stats.get("energy", 0.0)
+
+## 能量上限
+func get_max_energy() -> float:
+	return player_stats.get("max_energy", 10.0)
+
+## 消耗能量；成功返回 true，能量不足返回 false
+func spend_energy(amount: float) -> bool:
+	if get_energy() < amount:
+		return false
+	player_stats["energy"] = max(0.0, get_energy() - amount)
+	return true
+
+## 回复能量 (含上限)
+func regenerate_energy(amount: float) -> void:
+	var cap := get_max_energy()
+	player_stats["energy"] = min(cap, get_energy() + amount)
+
+## 提升能量上限 (卡牌用)
+func increase_max_energy(amount: float) -> void:
+	player_stats["max_energy"] = get_max_energy() + amount
 
 func set_state(new_state: GameState) -> void:
 	current_state = new_state
@@ -74,14 +117,9 @@ func on_enemy_captured(enemy_type: String, capture_value: float) -> void:
 	player_stats["total_captured"] += 1
 	player_stats["score"] += int(capture_value * 10)
 	
-	# 体型增长
-	var growth = capture_value * player_stats.get("capture_bonus", 1.0)
-	player_stats["capture_range"] += growth * 0.1
-	
-	# 检查升级
+	# 检查升级 (吞噬数作为经验阈值)
 	if player_stats.get("total_captured", 0) >= get_xp_threshold():
 		trigger_level_up()
-
 ## 计算升级所需XP (吞噬数)
 func get_xp_threshold() -> int:
 	return int(5 * pow(1.1, player_stats.get("level", 1) - 1))
@@ -89,6 +127,10 @@ func get_xp_threshold() -> int:
 ## 触发升级
 func trigger_level_up() -> void:
 	player_stats["level"] += 1
+	# 升级体型阶梯增长 (GDD 3.2.1)
+	var table = preload("res://scripts/devour_table.gd").new()
+	var new_radius: float = table.body_radius_for_level(player_stats["level"])
+	player_stats["capture_range"] = new_radius + 10.0
 	level_up.emit()
 	set_state(GameState.LEVEL_UP)
 	print("[GameManager] 升级! Lv.", player_stats.get("level", 1))
@@ -101,7 +143,6 @@ func trigger_level_up() -> void:
 	
 	# 暂停游戏逻辑
 	EventBus.game_paused.emit(true)
-
 ## 波次管理
 func start_wave(wave_num: int) -> void:
 	current_wave = wave_num

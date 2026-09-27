@@ -206,6 +206,10 @@ func _apply_passive_effects(card: Dictionary) -> void:
 		s["energy_per_capture"] = stats["energy_per_capture"]
 	if "energy_cap_bonus" in stats:
 		s["energy_cap"] = s.get("energy_cap", 0) + stats["energy_cap_bonus"]
+	if "escape_chance_reduction" in stats:
+		s["escape_chance_reduction"] = s.get("escape_chance_reduction", 0.0) + stats["escape_chance_reduction"]
+	if "gnaw_speed_bonus" in stats:
+		s["gnaw_speed_bonus"] = s.get("gnaw_speed_bonus", 0.0) + stats["gnaw_speed_bonus"]
 	if "initial_energy_bonus" in stats:
 		s["current_energy"] = s.get("current_energy", 0) + stats["initial_energy_bonus"]
 	if "max_simultaneous_captures" in stats:

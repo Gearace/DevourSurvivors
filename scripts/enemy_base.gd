@@ -22,6 +22,10 @@ var _wander_angle: float = 0.0
 var _wander_timer: float = 0.0
 var _velocity: Vector2 = Vector2.ZERO
 var _fear_shake: float = 0.0
+# ─── 无敌状态 (挣脱后 1s，GDD 3.2.2) ───────────────────
+var invincible: bool = false
+var invincible_timer: float = 0.0
+var _gnaw_ring: Node2D = null
 
 var textures: Dictionary = {
 	"basic": preload("res://assets/sprites/enemies/enemy_basic.png"),
@@ -50,8 +54,8 @@ func _ready() -> void:
 	_update_visuals()
 
 func _physics_process(delta: float) -> void:
-	if not active:
-		return
+	# 刷新啃食进度环
+	_update_gnaw_ring()
 	# 恐惧抖动效果
 	if _fear_shake > 0:
 		_fear_shake -= delta
@@ -96,6 +100,8 @@ func die() -> void:
 
 ## 死亡动画
 func _death_animation() -> void:
+	if _gnaw_ring and is_instance_valid(_gnaw_ring):
+		_gnaw_ring.visible = false
 	var tween = create_tween()
 	tween.tween_property(self, "scale", Vector2.ZERO, 0.3)
 	var tween2 = create_tween()
@@ -128,6 +134,7 @@ func _update_visuals() -> void:
 		body.custom_minimum_size = Vector2(body_radius * 2, body_radius * 2)
 		body.position = Vector2(-body_radius, -body_radius)
 		add_child(body)
+	_ensure_gnaw_ring()
 
 ## 设置玩家引用
 func set_player_reference(player: Node2D) -> void:
@@ -149,3 +156,60 @@ func get_flee_direction() -> Vector2:
 		return Vector2.RIGHT
 	var dir := global_position - player_ref.global_position
 	return dir.normalized()
+
+## ─── 啃食进度环 (GDD 3.2.2) ───────────────────────────────
+## 由 PlayerController 每帧写入 meta "gnaw_progress" (0.0~1.0)
+## 敌人基类根据该 meta 刷新进度环
+
+func _ensure_gnaw_ring() -> void:
+	if _gnaw_ring and is_instance_valid(_gnaw_ring):
+		return
+	var ring := GnawRing.new()
+	ring.name = "GnawRing"
+	ring.ring_radius = body_radius + 6.0
+	ring.z_index = 5
+	ring.visible = false
+	add_child(ring)
+	_gnaw_ring = ring
+
+## 每帧刷新进度环显示 (由 _physics_process 调用)
+func _update_gnaw_ring() -> void:
+	if _gnaw_ring == null or not is_instance_valid(_gnaw_ring):
+		return
+	var progress: float = get_meta("gnaw_progress", 0.0)
+	if progress > 0.0:
+		_gnaw_ring.visible = true
+		_gnaw_ring.set_progress(progress)
+	else:
+		_gnaw_ring.visible = false
+
+## 清除啃食进度
+func clear_gnaw() -> void:
+	set_meta("gnaw_progress", 0.0)
+	if _gnaw_ring and is_instance_valid(_gnaw_ring):
+		_gnaw_ring.visible = false
+
+
+# ─── 嵌套类：啃食进度环渲染节点 ───────────────────────────
+class GnawRing:
+	extends Node2D
+	## 啃食进度环 — 环形进度条替代血条 (GDD 3.2.2)
+	## 挂载在敌人身上，由 set_progress() 驱动
+
+	var ring_radius: float = 21.0
+	var thickness: float = 4.0
+	var ring_color: Color = Color(1.0, 0.6, 0.1, 1.0)
+	var bg_color: Color = Color(0.0, 0.0, 0.0, 0.35)
+	var _progress: float = 0.0
+
+	func set_progress(value: float) -> void:
+		_progress = clampf(value, 0.0, 1.0)
+		queue_redraw()
+
+	func _draw() -> void:
+		# 背景环
+		draw_arc(Vector2.ZERO, ring_radius, 0.0, TAU, 48, bg_color, thickness, true)
+		# 进度环 (从顶部开始顺时针)
+		if _progress > 0.0:
+			var end_angle: float = TAU * _progress - PI / 2.0
+			draw_arc(Vector2.ZERO, ring_radius, -PI / 2.0, end_angle, 48, ring_color, thickness, true)
