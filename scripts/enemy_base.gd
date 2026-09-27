@@ -1,4 +1,4 @@
-extends Area2D
+﻿extends Area2D
 ## EnemyBase — 敌人基类
 ## 所有敌人类型的父节点，提供公共属性和方法
 
@@ -26,6 +26,16 @@ var _fear_shake: float = 0.0
 var invincible: bool = false
 var invincible_timer: float = 0.0
 var _gnaw_ring: Node2D = null
+
+	# ─── 精英机制状态 (GDD 7.3 / 5.8) ──────────────────────
+const SPLIT_WAVE_DMG := 8
+const TOXIN_DPS := 3
+const TOXIN_DURATION := 8.0
+const MIRROR_CLONE_COUNT := 2
+const FORTRESS_GNAW_SLOW := 2.0
+const TEARER_COOLDOWN := 4.0
+const POISON_RANGE := 60.0
+var _elite_timer: float = 0.0
 
 var textures: Dictionary = {
 	"basic": preload("res://assets/sprites/enemies/enemy_basic.png"),
@@ -65,6 +75,9 @@ func _physics_process(delta: float) -> void:
 	# 边界限制 (固定 720x1280 场地)
 	global_position.x = clamp(global_position.x, body_radius, 720.0 - body_radius)
 	global_position.y = clamp(global_position.y, body_radius, 1280.0 - body_radius)
+	# 精英专属行为 (GDD 5.8)
+	_process_elite(delta)
+
 
 ## 重置敌人到可用状态 (对象池用)
 func reset(pos: Vector2, type_data: Dictionary = {}) -> void:
@@ -75,6 +88,12 @@ func reset(pos: Vector2, type_data: Dictionary = {}) -> void:
 	_wander_angle = randf() * TAU
 	_wander_timer = 0.0
 	_fear_shake = 0.0
+	# 精英机制重置 (GDD 5.8)
+	_elite_timer = 0.0
+	if enemy_type in ["elite_tearer", "elite_toxin", "elite_mirror", "elite_fortress"]:
+		_apply_elite_default()
+	if enemy_type == "elite_fortress":
+		set_meta("gnaw_slow", FORTRESS_GNAW_SLOW)
 	is_fleeing = false
 	if not type_data.is_empty():
 		if type_data.has("enemy_type"):
@@ -92,6 +111,9 @@ func reset(pos: Vector2, type_data: Dictionary = {}) -> void:
 func die() -> void:
 	if not active:
 		return
+	if enemy_type == "elite_mirror":
+		_spawn_mirrors()
+
 	active = false
 	current_hp = 0
 	enemy_died.emit(enemy_type, global_position)
@@ -213,3 +235,82 @@ class GnawRing:
 		if _progress > 0.0:
 			var end_angle: float = TAU * _progress - PI / 2.0
 			draw_arc(Vector2.ZERO, ring_radius, -PI / 2.0, end_angle, 48, ring_color, thickness, true)
+
+
+## ─── 精英专属行为分发 (GDD 7.3 / 5.8) ───────────────────────
+func _process_elite(delta: float) -> void:
+	if not active:
+		return
+	match enemy_type:
+		"elite_tearer":
+			_update_tearer(delta)
+		"elite_toxin":
+			_update_toxin()
+
+## 撕裂者：每 4s 向玩家发撕裂波（300px 直线）
+func _update_tearer(delta: float) -> void:
+	_elite_timer += delta
+	if _elite_timer >= TEARER_COOLDOWN:
+		_elite_timer = 0.0
+		_fire_tear_wave()
+
+func _fire_tear_wave() -> void:
+	if player_ref == null:
+		return
+	var dist := global_position.distance_to(player_ref.global_position)
+	if dist <= 300.0:
+		if player_ref.has_method("take_damage"):
+			player_ref.take_damage(SPLIT_WAVE_DMG)
+		var bus = get_node_or_null("/root/MainGame/EventBus")
+		if bus and bus.has_signal("screen_shake"):
+			bus.emit_signal("screen_shake", 0.2, 6.0)
+
+## 毒囊：靠近玩家时施加中毒
+func _update_toxin() -> void:
+	if player_ref == null:
+		return
+	var dist = global_position.distance_to(player_ref.global_position)
+	if dist < POISON_RANGE and player_ref.has_method("apply_poison"):
+		player_ref.apply_poison(TOXIN_DPS, TOXIN_DURATION)
+
+## 镜影：通过对象池召唤 2 个诱饵分身
+func _spawn_mirrors() -> void:
+	var pool = get_node_or_null("/root/MainGame/ObjectPool")
+	if pool == null:
+		return
+	for i in range(MIRROR_CLONE_COUNT):
+		var offset = Vector2(randf_range(-50, 50), randf_range(-50, 50))
+		var clone_data := {
+			"enemy_type": "decoy",
+			"speed": 60.0,
+			"body_radius": 18.0,
+			"color": Color(0.9, 0.5, 0.7),
+			"capture_value": 0.5,
+		}
+		pool.spawn(global_position + offset, clone_data)
+
+## 按 elite 类型设置默认体型/血量/颜色
+func _apply_elite_default() -> void:
+	match enemy_type:
+		"elite_tearer":
+			body_radius = 45.0
+			max_hp = 6
+			color = Color(0.85, 0.2, 0.2)
+		"elite_toxin":
+			body_radius = 38.0
+			max_hp = 4
+			color = Color(0.4, 0.85, 0.3)
+		"elite_mirror":
+			body_radius = 30.0
+			max_hp = 3
+			color = Color(0.6, 0.6, 0.95)
+		"elite_fortress":
+			body_radius = 50.0
+			max_hp = 10
+			color = Color(0.7, 0.55, 0.3)
+
+## 掉落（GDD 7.3：精英必掉 遗物60% / 传说40%）
+func roll_elite_reward() -> Dictionary:
+	if randf() < 0.6:
+		return {"type": "relic"}
+	return {"type": "legendary_card"}

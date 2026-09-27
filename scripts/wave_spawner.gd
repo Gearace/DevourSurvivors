@@ -1,4 +1,4 @@
-extends Node
+﻿extends Node
 ## WaveSpawner — 波次生成管理器
 ## 负责每波敌人的配置、生成、清理、难度递增
 
@@ -170,6 +170,87 @@ func start_wave(wave_number: int) -> void:
 	
 	print("[WaveSpawner] 波次 ", wave_number, " 开始 — 生成 ", _spawn_queue.size(), " 个敌人")
 
+## 路线化关卡入口 (GDD 7.2 / 5.3)
+## pack: 来自 RouteGenerator.pick_option 的节点数据包
+## 非战斗节点（营地/商店/剧情事件）不刷怪，直接完成 → 进下一层决策
+func start_node(pack: Dictionary) -> void:
+	var floor: int = pack.get("floor", _current_wave)
+	var node_type: int = pack.get("node_type", 0)
+	_current_wave = floor
+	_captured_count = 0
+
+	if _gm:
+		_gm.current_floor = floor
+		_gm.current_node_type = node_type
+
+	# 非战斗节点：营地(2)/商店(3)/剧情事件 → 无敌人，立即结算
+	if node_type == 2 or node_type == 3 or _is_event_story(pack):
+		_is_generating = false
+		_all_spawned = true
+		_spawn_queue.clear()
+		if _gm:
+			_gm.end_wave()
+		wave_complete.emit(floor)
+		print("[WaveSpawner] 层 ", floor, " (非战斗节点) 完成 → 下一层决策")
+		_request_next_decision(floor)
+		return
+
+	# 战斗节点：按 pack 编队包生成
+	_is_generating = true
+	_all_spawned = false
+	_spawn_queue.clear()
+	var entries = pack.get("enemies", [])
+	for entry in entries:
+		var type_id: String = entry.get("type", "basic")
+		var config = _enemy_configs.get(type_id, _enemy_configs["basic"]).duplicate(true)
+		config = _apply_node_overrides(config, pack, type_id)
+		for i in range(entry.get("count", 1)):
+			_spawn_queue.push_back({"type": type_id, "config": config})
+	_shuffle_queue()
+	if _gm:
+		_gm.start_wave(floor)
+	wave_starting.emit(floor)
+	print("[WaveSpawner] 层 ", floor, " (节点 ", node_type, ") — 生成 ", _spawn_queue.size(), " 个敌人")
+
+## 事件是否剧情型（不刷怪）
+func _is_event_story(pack: Dictionary) -> bool:
+	if pack.get("node_type", 0) != 4:
+		return false
+	var eid: String = pack.get("event_id", "")
+	return eid in ["time_rift", "mystery_merchant"]
+
+## 按节点类型覆盖敌人属性（精英/Boss 体型 + 层号缩放）
+func _apply_node_overrides(config: Dictionary, pack: Dictionary, type_id: String) -> Dictionary:
+	var node_type: int = pack.get("node_type", 0)
+	var floor: int = pack.get("floor", 1)
+	var diff := 1.0
+	var rg = get_node_or_null("../RouteGenerator")
+	if rg and rg.has_method("get_difficulty"):
+		diff = rg.get_difficulty(floor, node_type)
+	# 数量按层号系数缩放（仅普通波）
+	if node_type == 0:
+		config["hp"] = int(config.get("hp", 1) * diff + 0.5)
+	# 精英特殊体型 (GDD 7.3 精英表)
+	match type_id:
+		"elite_tearer":   config["body_radius"] = 45.0; config["hp"] = 6
+		"elite_toxin":    config["body_radius"] = 38.0; config["hp"] = 4
+		"elite_mirror":   config["body_radius"] = 30.0; config["hp"] = 3
+		"elite_fortress": config["body_radius"] = 50.0; config["hp"] = 10
+		"boss_ch1":       config["body_radius"] = 60.0; config["hp"] = 25
+	return config
+
+## 层完成后进入「决策时刻」：请求 RouteUI 显示下一层 3 选 1
+signal decision_needed(floor: int)
+
+func _request_next_decision(cleared_floor: int) -> void:
+	var next_floor: int = cleared_floor + 1
+	if next_floor > 13:
+		# 章节完成（Boss 后结算 / 无尽模式后续扩展）
+		all_waves_complete.emit()
+		print("[WaveSpawner] 章节完成（13 层清空）")
+		return
+	decision_needed.emit(next_floor)
+
 ## 动态生成超出预设的波次
 func _generate_dynamic_wave(wave_num: int) -> Array:
 	var entries = []
@@ -256,11 +337,12 @@ func _check_wave_complete() -> void:
 			_gm.end_wave()
 		wave_complete.emit(_current_wave)
 		print("[WaveSpawner] 波次 ", _current_wave, " 完成!")
+
+		# 精英掉落结算 (GDD 7.3：必掉 遗物60%/传说40%)
+		_grant_elite_reward_if_any()
 		
-		# 自动开始下一波 (延迟2秒)
-		var tween = create_tween()
-		tween.tween_delay(2.0)
-		_start_next_wave(_current_wave + 1)
+		# 路线化：层完成后进入「决策时刻」(不再自动 start_wave)
+		_request_next_decision(_current_wave)
 
 ## 启动下一波（命名闭包替代 func: lambda）
 func _start_next_wave(next_wave_num: int) -> void:
@@ -280,3 +362,26 @@ func clear_all() -> void:
 	_spawn_queue.clear()
 	_is_generating = false
 	_all_spawned = true
+
+## 精英掉落结算：若本层是精英节点且已清空，roll 掉落 (GDD 7.3)
+func _grant_elite_reward_if_any() -> void:
+	if _gm == null:
+		return
+	var node_type: int = _gm.current_node_type
+	if node_type != 1:  # 仅精英节点
+		return
+	if randf() < 0.6:
+		# 遗物：从遗物池随机 1 个
+		var relic_pool = CardDatabase.get_cards_by_rarity("Relic")
+		if relic_pool.size() > 0:
+			var pick = relic_pool[randi() % relic_pool.size()]
+			if not _gm.relics.has(pick.get("id", "")):
+				_gm.relics.append(pick.get("id", ""))
+			print("[WaveSpawner] 精英掉落遗物: ", pick.get("name", "?"))
+	else:
+		# 传说卡：从传说池随机 1 张进牌组
+		var leg_pool = CardDatabase.get_cards_by_rarity("Legendary")
+		if leg_pool.size() > 0:
+			var pick = leg_pool[randi() % leg_pool.size()]
+			_gm.add_card_to_deck(pick.get("id", ""))
+			print("[WaveSpawner] 精英掉落传说卡: ", pick.get("name", "?"))

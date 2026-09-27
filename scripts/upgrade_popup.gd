@@ -278,18 +278,12 @@ func _select_card(idx: int, container: Control, orig_style: StyleBox, orig_borde
 			var old_style = child.get_theme_stylebox("panel")
 			if old_style is StyleBoxFlat:
 				old_style.border_color = child.get_meta("orig_border")
-			elif old_style is StyleBoxTexture:
-				old_style.modulate = Color.WHITE
-				
 	container.set_meta("highlighted", true)
 	container.set_meta("orig_border", orig_border)
 	
 	var s = container.get_theme_stylebox("panel")
 	if s is StyleBoxFlat:
 		s.border_color = Color(1.0, 1.0, 1.0, 1.0)
-	elif s is StyleBoxTexture:
-		s.modulate = Color(1.4, 1.4, 1.4, 1.0) # 高亮选中卡牌
-		
 	selected_card_idx = idx
 	confirm_btn.disabled = false
 

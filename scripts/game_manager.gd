@@ -1,4 +1,4 @@
-extends Node
+﻿extends Node
 ## GameManager — 全局状态管理器 (autoload 单例)
 ## 负责游戏状态机、全局数据、事件分发
 
@@ -46,6 +46,12 @@ var enemies_remaining_this_wave: int = 0
 # 牌组数据
 var player_deck: Array[String] = []  # 已获得的卡牌ID列表
 var deck_capacity: int = 10
+
+# 路线数据 (GDD 7.2 / 5.7)
+var run_route: Array = []      # 本局 13 层路线 [{floor, options, picked}]
+var current_floor: int = 1     # 当前层号
+var current_node_type: int = 0 # 当前节点类型 (RouteGenerator.NodeType)
+var chapter: int = 1           # 当前章节号 (GDD 7.5)
 
 # 技能数据
 var active_skills: Array[String] = ["swallow_wave"]  # 初始自带吞噬波
@@ -242,6 +248,31 @@ func _try_fuse(card_a: String, card_b: String) -> Dictionary:
 	
 	return {}
 
+## 重置本局（死亡重试，GDD 7.7 / 5.10）
+func reset_run() -> void:
+	# 保留牌组（构筑延续），重置 HP/能量/分数/层号
+	player_stats["current_hp"] = player_stats.get("max_hp", 100)
+	player_stats["energy"] = player_stats.get("max_energy", 10.0)
+	player_stats["score"] = 0
+	player_stats["total_captured"] = 0
+	current_wave = 1
+	current_floor = 1
+	current_node_type = 0
+	run_route = []
+	relics = []  # 重试清空遗物（永恒之环保留的卡由 RunOver 在 reset 前处理）
+	set_state(GameState.PLAYING)
+	print("[GameManager] 本局已重置 — 重新开始")
+
+## 章节推进（通关 13 层后，GDD 7.5 / 5.10）
+## 保留 build，章节号 +1；HP/能量由 RunOver 回复至 70%
+func start_new_chapter() -> void:
+	chapter += 1
+	current_floor = 1
+	current_node_type = 0
+	run_route = []
+	# 章节间敌人速度递增（GDD 7.5：章节2 +20% 等）
+	# 简化：记录章节，route_generator 可据此加难度
+	print("[GameManager] 进入第 ", chapter, " 章")
 ## 保存/加载
 func save_game() -> void:
 	var save_data = {

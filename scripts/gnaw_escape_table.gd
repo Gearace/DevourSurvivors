@@ -1,4 +1,4 @@
-extends RefCounted
+﻿extends RefCounted
 ## GnawEscapeTable — 大怪挣脱率数值 (GDD 3.2.2 挣脱率)
 ## 不同大怪挣脱概率/反馈不同，越大越难啃
 ##
@@ -16,9 +16,9 @@ const BASE_FEEDBACK := 0.0
 const BASE_REFUND := 0.3
 const BASE_STEADINESS := 1.0
 
-static var _table: RefCounted = null
+var _table: RefCounted = null
 
-@static func get_table() -> RefCounted:
+func get_table() -> RefCounted:
 	if _table == null:
 		_table = _GnawTable.new()
 	return _table

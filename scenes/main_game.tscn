@@ -1,9 +1,12 @@
-[gd_scene format=3 uid="uid://j3ef4ruabe4f"]
+﻿[gd_scene format=3 uid="uid://j3ef4ruabe4f"]
 
 [ext_resource type="Script" uid="uid://b5axhnjc326a3" path="res://scripts/main_game_controller.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://dyij4vlg2sygy" path="res://scripts/event_bus.gd" id="3_event"]
 [ext_resource type="Script" uid="uid://2ccin7nlpvjx" path="res://scripts/object_pool.gd" id="4_pool"]
 [ext_resource type="Script" uid="uid://bbfw86iasvnl1" path="res://scripts/wave_spawner.gd" id="5_wave"]
+[ext_resource type="Script" path="res://scripts/route_generator.gd" id="9_route"]
+[ext_resource type="Script" path="res://scripts/route_ui.gd" id="10_routeui"]
+[ext_resource type="Script" path="res://scripts/run_over.gd" id="11_runover"]
 [ext_resource type="Script" uid="uid://d1t7tgyvtc8ly" path="res://scripts/skill_system.gd" id="6_skill"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="7_player"]
 [ext_resource type="Script" path="res://scripts/hud_controller.gd" id="7_hud"]
@@ -23,6 +26,15 @@ script = ExtResource("3_event")
 script = ExtResource("4_pool")
 [node name="WaveSpawner" type="Node" parent="." unique_id=612941509]
 script = ExtResource("5_wave")
+
+[node name="RouteGenerator" type="Node" parent="." unique_id=4200000001]
+script = ExtResource("9_route")
+
+[node name="RouteUI" type="CanvasLayer" parent="." unique_id=4200000002]
+script = ExtResource("10_routeui")
+
+[node name="RunOver" type="CanvasLayer" parent="." unique_id=4200000003]
+script = ExtResource("11_runover")
 
 [node name="SkillSystem" type="Node2D" parent="." unique_id=982296757]
 script = ExtResource("6_skill")

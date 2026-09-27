@@ -1,4 +1,4 @@
-extends CharacterBody2D
+﻿extends CharacterBody2D
 ## PlayerController — 玩家移动 + 吞噬判定 (四层机制版)
 ##
 ## 职责：
@@ -29,6 +29,11 @@ var _gnaw_escape_interval: float = 1.5      # 挣脱检查间隔
 var _gnaw_escape_feedback: float = 0.0      # 挣脱反馈：把玩家推开
 var _gnaw_energy_refund: float = 0.3        # 挣脱返还能量比例
 var _gnaw_steadiness: float = 1.0          # 啃食稳固度倍率
+# ─── 毒囊中毒状态 (GDD 5.8 elite_toxin) ──────────────────
+var _poison_dps: float = 0.0
+var _poison_timer: float = 0.0
+var _poison_acc: float = 0.0
+var _gnaw_steadiness_now: float = 1.0  # 当前啃食减速倍率 (堡垒=2.0)
 var _gnaw_required: float = 1.0             # 该敌人需要啃多久
 
 # ─── 内部状态 ─────────────────────────────────────────
@@ -85,6 +90,16 @@ func _process(delta: float) -> void:
 	# 无敌计时器
 	if _invincible_timer > 0:
 		_invincible_timer -= delta
+
+	# 中毒 DoT (GDD 5.8)
+	if _poison_timer > 0.0:
+		_poison_timer -= delta
+		_poison_acc += delta
+		if _poison_acc >= 1.0:
+			_poison_acc -= 1.0
+			take_damage(int(_poison_dps))
+		if _poison_timer <= 0.0:
+			_poison_dps = 0.0
 	
 	# 平滑移动
 	velocity = _current_direction * base_speed * _speed_multiplier
@@ -144,8 +159,9 @@ func _update_gnaw(delta: float) -> void:
 			_reset_gnaw()
 			print("[Player] 能量耗尽，啃食中断")
 	
-	# 进度推进
-	_gnaw_progress += _gnaw_steadiness * delta
+	# 进度推进（堡垒啃食减速：_gnaw_steadiness_now 越大越慢）
+	_gnaw_progress += _gnaw_steadiness * delta / maxf(_gnaw_steadiness_now, 1.0)
+
 	_gnaw_target.set_meta("gnaw_progress", _gnaw_progress / maxf(_gnaw_required, 0.1))
 	
 	# 完成
@@ -165,6 +181,12 @@ func _start_gnaw(enemy: Node2D) -> void:
 	_gnaw_required = _table.gnaw_seconds(enemy.enemy_type)
 	if _gnaw_required <= 0.0:
 		_gnaw_required = 0.1  # 安全下限
+	# 堡垒啃食减速 (GDD 5.8 elite_fortress)：读 meta gnaw_slow 放慢进度
+	var gnaw_slow: float = 1.0
+	if enemy.has_meta("gnaw_slow"):
+		gnaw_slow = enemy.get_meta("gnaw_slow")
+	_gnaw_steadiness_now = gnaw_slow
+
 
 func _finish_gnaw() -> void:
 	var enemy := _gnaw_target
@@ -295,6 +317,11 @@ func _get_capture_value(enemy_type: String, enemy_size: float) -> float:
 		"boss": 10.0,
 	}
 	return values.get(enemy_type, 1.0)
+## 中毒 DoT (GDD 5.8 elite_toxin)：每秒 _dps，持续 _duration 秒
+func apply_poison(_dps: float, _duration: float) -> void:
+	if _dps > _poison_dps or _poison_timer <= 0.0:
+		_poison_dps = _dps
+	_poison_timer = _duration
 
 ## 受到伤害
 func take_damage(amount: int) -> void:
