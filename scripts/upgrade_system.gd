@@ -176,6 +176,9 @@ func select_card(card: Dictionary) -> void:
 		if not fusion_result.is_empty():
 			print("[UpgradeSystem] 触发融合: ", fusion_result.get("name", ""))
 		_apply_passive_effects(card)
+	# v1.1: 进化卡选中 → 同步体型 (无经验系统, 由选卡驱动)
+	if card.get("category", "") != "Relic":
+		GameManager.sync_body_on_level_up()
 		card_selected.emit(card_id)
 	_close_upgrade_popup()
 
@@ -221,6 +224,9 @@ func _apply_passive_effects(card: Dictionary) -> void:
 	print("[UpgradeSystem] 当前属性: LV=", s.get("level", 1), " HP=", s.get("current_hp", 100), " Speed=", s.get("speed", 200.0), " Capture=", s.get("capture_range", 40.0))
 
 func _close_upgrade_popup() -> void:
+	# 升级弹窗自身不会隐藏，需手动关闭，否则会残留全黑遮罩挡住 RouteUI (layer 90)
+	if UpgradePopup.has_method("hide_upgrade"):
+		UpgradePopup.hide_upgrade()
 	GameManager.set_state(GameManager.GameState.PLAYING)
 	print("[UpgradeSystem] 升级完成，恢复游戏")
 

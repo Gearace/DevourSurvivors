@@ -218,6 +218,14 @@ func _advance_chapter() -> void:
 	# roll 新章节路线（章节号由 route_generator / gm 递增；此处重置到第 1 层）
 	if _gm.has_method("start_new_chapter"):
 		_gm.start_new_chapter()
+		# 重置楼层/波次/节点类型，保留章节号与 build
+		_gm.current_floor = 1
+		_gm.current_node_type = 0
+		_gm.current_wave = 1
+		_gm.enemies_spawned_this_wave = 0
+		_gm.enemies_remaining_this_wave = 0
+		# 章节间敌人速度/属性递增（GDD 7.5）：每章 +20%
+		_gm.difficulty_multiplier = 1.0 + (int(_gm.chapter) - 1) * 0.2
 	if _route_generator:
 		_route_generator.generate_run()
 	if _route_generator and _spawner:

@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 ## WaveSpawner — 波次生成管理器
 ## 负责每波敌人的配置、生成、清理、难度递增
 
@@ -237,6 +237,13 @@ func _apply_node_overrides(config: Dictionary, pack: Dictionary, type_id: String
 		"elite_mirror":   config["body_radius"] = 30.0; config["hp"] = 3
 		"elite_fortress": config["body_radius"] = 50.0; config["hp"] = 10
 		"boss_ch1":       config["body_radius"] = 60.0; config["hp"] = 25
+		"boss_v2_void":   config["body_radius"] = 65.0; config["hp"] = 30
+		"boss_v3_abyss":  config["body_radius"] = 70.0; config["hp"] = 40
+	# 章节属性放大（GDD 7.5）
+	if rg and rg.has_method("get_chapter_stat_scale"):
+		var cscale: float = rg.get_chapter_stat_scale()
+		config["speed"] = config.get("speed", 80.0) * cscale
+		config["hp"] = int(config.get("hp", 1) * cscale + 0.5)
 	return config
 
 ## 层完成后进入「决策时刻」：请求 RouteUI 显示下一层 3 选 1
@@ -338,9 +345,9 @@ func _check_wave_complete() -> void:
 		wave_complete.emit(_current_wave)
 		print("[WaveSpawner] 波次 ", _current_wave, " 完成!")
 
-		# 精英掉落结算 (GDD 7.3：必掉 遗物60%/传说40%)
-		_grant_elite_reward_if_any()
-		
+		# v1.1: 通关奖励顺序 — 进化卡 4 选 1 → 遗物卡 3 选 1 (精英/Boss) → 路线决策 3 选 1
+		_grant_evolution_card_choice()
+		_grant_relic_card_choice()
 		# 路线化：层完成后进入「决策时刻」(不再自动 start_wave)
 		_request_next_decision(_current_wave)
 
@@ -385,3 +392,84 @@ func _grant_elite_reward_if_any() -> void:
 			var pick = leg_pool[randi() % leg_pool.size()]
 			_gm.add_card_to_deck(pick.get("id", ""))
 			print("[WaveSpawner] 精英掉落传说卡: ", pick.get("name", "?"))
+
+## v1.1: 进化卡 4 选 1 — 所有层通关后弹出
+## 从 55 张进化卡池 (11 技能 × 5 材质) 随机抽 4 张, 玩家选 1 张进技能栏
+func _grant_evolution_card_choice() -> void:
+	if _gm == null:
+		return
+	# 进化卡池 (v1.1: 11 技能 × 5 材质 = 55 张)
+	# 简化: 从 CardDatabase 的所有非遗物卡中抽取
+	var evo_pool = CardDatabase.get_all_cards()
+	# 过滤出非 Relic 类
+	var filtered: Array[Dictionary] = []
+	for card in evo_pool:
+		if card.get("category", "") != "Relic":
+			filtered.append(card)
+	if filtered.size() < 4:
+		print("[WaveSpawner] 进化卡池不足 4 张, 跳过")
+		return
+	# 随机抽 4 张
+	var drawn: Array[Dictionary] = []
+	var available = filtered.duplicate()
+	for i in range(4):
+		if available.is_empty():
+			break
+		var idx = randi() % available.size()
+		drawn.append(available[idx])
+		available.remove_at(idx)
+	# 弹出进化卡选择 UI
+	UpgradePopup.show_upgrade(drawn)
+	# 暂停游戏
+	_gm.set_state(GameManager.GameState.LEVEL_UP)
+	print("[WaveSpawner] 进化卡 4 选 1 弹出: ", drawn.size(), " 张")
+
+## v1.1: 遗物卡 3 选 1 — 仅精英层/Boss 层通关后弹出
+## 稀有度按关卡 roll: 普通 60% / 罕见 30% / 史诗 9% / 传说 1% (精英)
+## Boss 层保底 1 张史诗以上
+func _grant_relic_card_choice() -> void:
+	if _gm == null:
+		return
+	var node_type: int = _gm.current_node_type
+	# 仅精英(1) / Boss(5) 节点掉遗物卡
+	if node_type != 1 and node_type != 5:
+		return
+	# 按稀有度 roll 3 张遗物卡
+	var drawn: Array[Dictionary] = []
+	var is_boss: bool = (node_type == 5)
+	for i in range(3):
+		var rarity_cn = _roll_relic_rarity_cn(is_boss, i)
+		var relic_pool = CardDatabase.get_cards_by_new_rarity(rarity_cn)
+		if relic_pool.size() == 0:
+			# fallback to common
+			relic_pool = CardDatabase.get_cards_by_new_rarity('普通')
+		if relic_pool.size() > 0:
+			var pick = relic_pool[randi() % relic_pool.size()]
+			drawn.append(pick)
+	if drawn.size() == 0:
+		return
+	# 弹出遗物卡选择 UI (复用 UpgradePopup, 传标识区分)
+	UpgradePopup.show_relic_choices(drawn)
+	print("[WaveSpawner] 遗物卡 3 选 1 弹出: ", drawn.size(), " 张 (节点 ", node_type, ")")
+
+## 按关卡 roll 遗物稀有度 (返回中文稀有度名: 普通/罕见/史诗/传说/神器)
+func _roll_relic_rarity_cn(is_boss: bool, card_index: int) -> String:
+	if is_boss:
+		if card_index == 0:
+			# 保底史诗以上
+			var r = randf()
+			if r < 0.35: return "史诗"
+			elif r < 0.70: return "传说"
+			else: return "神器"
+		else:
+			var r2 = randf()
+			if r2 < 0.50: return "罕见"
+			elif r2 < 0.85: return "史诗"
+			else: return "传说"
+	else:
+		# 精英层稀有度分布
+		var r3 = randf()
+		if r3 < 0.60: return "普通"
+		elif r3 < 0.90: return "罕见"
+		elif r3 < 0.99: return "史诗"
+		else: return "传说"

@@ -1,4 +1,4 @@
-﻿extends CharacterBody2D
+extends CharacterBody2D
 ## PlayerController — 玩家移动 + 吞噬判定 (四层机制版)
 ##
 ## 职责：
@@ -291,6 +291,12 @@ func _execute_capture(enemy) -> void:
 	if _pool:
 		_pool.despawn(enemy)
 	
+	
+	# v1.1: 材质掉落 (怪物掉材质, 无经验系统)
+	# heavy 30% / split 40% / 精英 100% (1~2) / Boss 100% (2~3)
+	# 材质类型 5 种均等 (精英/Boss 50% 偏向自身属性)
+	if _gm and _gm.has_method("drop_elemental_material"):
+		_gm.drop_elemental_material(enemy_type)
 	# 分裂怪吞下时分裂 (GDD 3.2)
 	if enemy_type == "split" and _pool:
 		for i in range(2):

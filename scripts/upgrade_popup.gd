@@ -154,6 +154,31 @@ func show_upgrade(cards: Array[Dictionary]) -> void:
 	tween.tween_property(panel, "modulate", Color.WHITE, 0.25)
 	print("[UpgradePopup] 显示 %d 张卡牌" % cards.size())
 
+
+## v1.1: 遗物卡 3 选 1 (复用 card_grid, 传 mode="relic")
+## 与进化卡 4 选 1 共用同一弹窗, 仅标题/稀有度显示不同
+func show_relic_choices(cards: Array[Dictionary]) -> void:
+	# 修改标题为"遗物卡 3 选 1"
+	if title_label:
+		title_label.text = "遗物卡！选择一项被动"
+	current_cards = cards
+	selected_card_idx = -1
+	confirm_btn.disabled = true
+	
+	for child in card_grid.get_children():
+		card_grid.remove_child(child)
+		child.queue_free()
+	
+	for i in cards.size():
+		var card = cards[i]
+		var card_node = _create_card_ui(card, i)
+		card_grid.add_child(card_node)
+	
+	visible = true
+	panel.modulate = Color.TRANSPARENT
+	var tween = create_tween()
+	tween.tween_property(panel, "modulate", Color.WHITE, 0.25)
+	print("[UpgradePopup] 遗物卡 3 选 1 显示: ", cards.size(), " 张")
 func _create_card_ui(card: Dictionary, idx: int) -> Control:
 	var card_panel = PanelContainer.new()
 	card_panel.custom_minimum_size = Vector2(180, 220)
@@ -305,11 +330,20 @@ func _on_panel_anim_finished() -> void:
 	visible = false
 
 func _get_rarity_text(rarity: String) -> String:
+	# 英文稀有度 → 中文
 	match rarity:
 		"Common": return "普通"
-		"Uncommon": return "稀有"
+		"Uncommon": return "罕见"
+		"Epic": return "史诗"
 		"Legendary": return "传说"
-		"Relic": return "遗物"
+		"Relic": return "神器"
+	# 已是中文稀有度直接返回
+	match rarity:
+		"普通": return "普通"
+		"罕见": return "罕见"
+		"史诗": return "史诗"
+		"传说": return "传说"
+		"神器": return "神器"
 	return rarity
 
 func hide_upgrade() -> void:

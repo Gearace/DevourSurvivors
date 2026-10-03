@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 ## RouteGenerator — 路线生成器 (GDD 7.2 / 5.7)
 ## 负责：每局 roll 出 13 层完整路线 + 各层候选卡片，
 ## 带模板约束（精英≤2、商店≥1、事件≤2），结果写入 GameManager.run_route。
@@ -75,6 +75,7 @@ const MIN_SHOP_CANDIDATES  := 1
 # 每层一条: { floor:int, options:Array, picked:int }
 var _run_route: Array = []
 var _gm: Node
+var _runtime_difficulty: float = 1.0
 
 func _ready() -> void:
 	_gm = get_node_or_null("/root/GameManager")
@@ -84,6 +85,7 @@ func _ready() -> void:
 ## 返回: Array，每项 { floor, options:Array, picked:int }
 func generate_run() -> Array:
 	var attempts := 0
+	_runtime_difficulty = _chapter_stat_scale(_get_chapter())
 	while true:
 		attempts += 1
 		var route := _roll_once()
@@ -191,8 +193,43 @@ func _make_node_pack(rec: Dictionary, node_type: int) -> Dictionary:
 		4:  # EVENT
 			pack["event_id"] = _roll_event_id()
 		5:  # BOSS
-			pack["boss_id"] = "boss_ch1"
+			pack["boss_id"] = _roll_boss_id(_get_chapter())
 	return pack
+
+## 当前章节号（GDD 7.5）
+func _get_chapter() -> int:
+	if _gm and "chapter" in _gm:
+		var c: int = int(_gm.chapter) if _gm.chapter > 0 else 1
+		return c
+	return 1
+
+## 章节敌人数量放大：1 章不变，2 章 ×1.15，3 章 ×1.3，4+ 每章再 ×1.1
+func _chapter_count_scale(chapter: int) -> float:
+	match chapter:
+		1: return 1.0
+		2: return 1.15
+		3: return 1.30
+		_: return 1.15 * pow(1.1, maxi(0, chapter - 2))
+
+## 章节敌人属性放大（含 GDD：速度 +20%/章、4+ 全属性 ×1.25）
+func _chapter_stat_scale(chapter: int) -> float:
+	match chapter:
+		1: return 1.0
+		2: return 1.2
+		3: return 1.4
+		_: return 1.4 * pow(1.25, maxi(0, chapter - 3))
+
+## 运行中当前章节难度（供 UI/外部读取）
+func get_runtime_difficulty() -> float:
+	return _runtime_difficulty
+
+## 章节 Boss：每章换形态 + 数值随章节放大
+func _roll_boss_id(chapter: int) -> String:
+	match chapter:
+		1: return "boss_ch1"
+		2: return "boss_v2_void"
+		3: return "boss_v3_abyss"
+		_: return "boss_ch%d" % chapter
 
 ## 普通波 / 精英护卫 的敌人编队包（GDD 7.3）
 func _make_enemy_pack(floor: int, node_type: int) -> Array:
@@ -212,7 +249,17 @@ func _make_enemy_pack(floor: int, node_type: int) -> Array:
 		for s in escorts:
 			pack.push_back(s)
 		return pack
-	return base
+	return _apply_chapter_count_scale(base)
+
+func _apply_chapter_count_scale(entries: Array) -> Array:
+	var ch: int = _get_chapter()
+	var scale: float = _chapter_count_scale(ch)
+	if ch <= 1:
+		return entries
+	for e in entries:
+		if int(e.count) > 0:
+			e.count = maxi(1, int(e.count * scale + 0.5))
+	return entries
 
 ## 普通波按层号编队（GDD 7.3 普通波表）
 func _normal_pack_for_floor(floor: int) -> Array:
@@ -286,6 +333,10 @@ func get_difficulty(floor: int, node_type: int) -> float:
 	var ff: float = FLOOR_FACTOR.get(floor, 1.0)
 	var nf: float = NODE_FACTOR.get(node_type, 1.0)
 	return ff * nf
+
+## 当前运行时章节属性放大（速度/血量的章节部分）
+func get_chapter_stat_scale() -> float:
+	return _chapter_stat_scale(_get_chapter())
 
 ## 节点中文名（供 UI）
 func node_name(node_type: int) -> String:

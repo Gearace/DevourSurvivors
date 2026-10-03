@@ -129,3 +129,47 @@ static func get_card_counts() -> Dictionary:
 	var total: int = get_all_cards().size()
 	counts["total"] = total as int
 	return counts
+
+
+
+# ========== v1.1: 新稀有度体系 (普通/罕见/史诗/传说/神器) ==========
+# 对应 GDD 6.3 遗物卡稀有度: 普通 60% / 罕见 30% / 史诗 9% / 传说 1% (精英层)
+# 映射到现有 CardDatabase 稀有度字段:
+#   Common     → 普通
+#   Uncommon   → 罕见
+#   Epic       → 史诗 (新增, 从 Uncommon/Legendary 中拆分)
+#   Legendary  → 传说
+#   Relic      → 神器
+const RARITY_NAMES: Dictionary = {
+	"Common": "普通",
+	"Uncommon": "罕见",
+	"Epic": "史诗",
+	"Legendary": "传说",
+	"Relic": "神器",
+}
+
+## 按新稀有度名获取卡牌 (Epic = Uncommon + Legendary 中高稀有度部分)
+static func get_cards_by_new_rarity(rarity_cn: String) -> Array[Dictionary]:
+	match rarity_cn:
+		"普通": return get_cards_by_rarity("Common")
+		"罕见": return get_cards_by_rarity("Uncommon")
+		"史诗":
+			var uncom = get_cards_by_rarity("Uncommon")
+			var leg = get_cards_by_rarity("Legendary")
+			var result: Array[Dictionary] = []
+			for i in range(uncom.size() / 2):
+				result.append(uncom[uncom.size() / 2 + i])
+			for i in range(leg.size() / 2):
+				result.append(leg[i])
+			return result
+		"传说": return get_cards_by_rarity("Legendary")
+		"神器": return get_cards_by_rarity("Relic")
+		_: return []
+
+## 按新稀有度名获取稀有度权重 (无经验系统, 用关卡节点类型代替等级)
+## node_type: 1=精英, 5=Boss
+static func get_relic_weights(node_type: int) -> Dictionary:
+	if node_type == 5:
+		return {"普通": 0.1, "罕见": 0.35, "史诗": 0.35, "传说": 0.15, "神器": 0.05}
+	else:
+		return {"普通": 0.60, "罕见": 0.30, "史诗": 0.09, "传说": 0.01, "神器": 0.0}
