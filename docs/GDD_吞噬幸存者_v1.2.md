@@ -248,10 +248,10 @@
 
 判定逻辑：先按基础成功率判定成功，成功后再 roll 特殊结果。
 
-`csharp
+```csharp
 if (!success) return Result.Fail;
 return Rand() < 0.05 ? Result.Great : Result.Normal;
-`
+```
 
 ---
 
