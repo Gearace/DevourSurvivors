@@ -234,29 +234,75 @@ func _try_fuse(card_a: String, card_b: String) -> Dictionary:
 ## 重置本局（死亡重试，GDD 7.7 / 5.10）
 
 ## v1.1: 材质掉落系统 (无经验, 成长来自吞怪掉材质 + 卡牌构筑)
+## v1.2: 材质品阶 6 档 (白/绿/蓝/紫/橙/红, 对应 GDD 2.4)
+## 品阶越高→浸篆有效期越长 (见 2.3)；升级需额外 3 个同品质同属性辅助材质 (2.4)
+const MATERIAL_TIERS: Array[int] = [0, 1, 2, 3, 4, 5]  # 0=白 1=绿 2=蓝 3=紫 4=橙 5=红
+const MATERIAL_TIER_NAMES: Dictionary = { 0: "白", 1: "绿", 2: "蓝", 3: "紫", 4: "橙", 5: "红" }
+
 ## 按敌人类型 roll 材质:
 ##   basic / swift / decoy: 不掉
-##   heavy:  30% 掉 1 个, 5 种材质均等
-##   split:  40% 掉 1 个, 5 种材质均等
-##   精英:   100% 掉 1~2 个, 50% 偏向精英属性 + 50% 随机
-##   Boss:   100% 掉 2~3 个, 偏向 Boss 属性
+##   heavy:  30% 掉 1 个, 品质白/绿, 5 种材质均等
+##   split:  40% 掉 1 个, 品质白/绿, 5 种材质均等
+##   精英:   100% 掉 1~2 个, 品质蓝/紫, 50% 偏向精英属性 + 50% 随机
+##   Boss:   100% 掉 2~3 个, 品质紫/橙, 偏向 Boss 属性
 const ELEMENTAL_MATERIALS: Array[String] = ["金", "木", "水", "火", "土"]
 
 # 当前持有的材质 (按类型计数)
-var held_materials: Dictionary = {}  # { "金": 2, "木": 1, ... }
+# 当前持有的材质 (v1.2 按类型+品阶: { "金": {tier: count}})
+var held_materials: Dictionary = {}  # { "金": {0: 1, 1: 2}, "木": {0: 1} }
 
 ## 获取某材质持有数量
 func get_material_count(material: String) -> int:
-	return held_materials.get(material, 0)
+	var tier_map: Dictionary = held_materials.get(material, {})
+	var total: int = 0
+	for tier in tier_map:
+		total += int(tier_map.get(tier, 0))
+	return total
+
+## v1.2: 获取某材质某品阶持有数量
+func get_material_count_tier(material: String, tier: int) -> int:
+	var tier_map: Dictionary = held_materials.get(material, {})
+	return int(tier_map.get(tier, 0))
+
+## v1.2: 获取某材质最高品阶 (浸篆有效期判断用)
+func get_material_max_tier(material: String) -> int:
+	var tier_map: Dictionary = held_materials.get(material, {})
+	if tier_map.is_empty(): return -1
+	var max_t: int = -1
+	for tier in tier_map:
+		if int(tier) > max_t:
+			max_t = int(tier)
+	return max_t
 
 ## 消耗材质 (用于融合/镶嵌)
-func spend_material(material: String, amount: int = 1) -> bool:
-	var cur = get_material_count(material)
-	if cur < amount:
-		return false
-	held_materials[material] = cur - amount
-	if held_materials[material] <= 0:
+## 消耗材质 (v1.2: 浸篆/合成/升级/熔炼; tier=-1 跨品阶高优先)
+func spend_material(material: String, amount: int = 1, tier: int = -1) -> bool:
+	var tier_map: Dictionary = held_materials.get(material, {})
+	if tier >= 0:
+		if int(tier_map.get(tier, 0)) < amount:
+			return false
+		tier_map[tier] = int(tier_map.get(tier, 0)) - amount
+		if tier_map[tier] <= 0:
+			tier_map.erase(tier)
+	else:
+		var remaining: int = amount
+		var tiers: Array = tier_map.keys().duplicate()
+		tiers.sort_custom(func(a, b): return int(b) > int(a))
+		for t in tiers:
+			if remaining <= 0:
+				break
+			var avail: int = int(tier_map.get(t, 0))
+			var take: int = mini(avail, remaining)
+			tier_map[t] = avail - take
+			if tier_map[t] <= 0:
+				tier_map.erase(t)
+			remaining -= take
+		if remaining > 0:
+			return false
+	if tier_map.is_empty():
 		held_materials.erase(material)
+	else:
+		held_materials[material] = tier_map
 	return true
 
 ## 吞噬敌人时 roll 材质掉落
@@ -266,7 +312,8 @@ func drop_elemental_material(enemy_type: String) -> void:
 		return
 	# 精英 / Boss
 	if enemy_type in ["elite_tearer", "elite_toxin", "elite_mirror", "elite_fortress", "boss_ch1", "boss_v2_void", "boss_v3_abyss"]:
-		_grant_elemental_drop(enemy_type, true)
+		var is_boss: bool = enemy_type in ["boss_ch1", "boss_v2_void", "boss_v3_abyss"]
+		_grant_elemental_drop(enemy_type, true, is_boss)
 		return
 	# heavy / split 按概率掉
 	var chance: float = 0.0
@@ -279,15 +326,27 @@ func drop_elemental_material(enemy_type: String) -> void:
 	_grant_elemental_drop(enemy_type, false)
 
 ## 实际发放 1 个材质
-func _grant_elemental_drop(enemy_type: String, is_elite_or_boss: bool) -> void:
+## 实际发放 1 个材质 (v1.2: 带品阶)
+func _grant_elemental_drop(enemy_type: String, is_elite_or_boss: bool, is_boss: bool = false) -> void:
 	# 决定材质类型: 精英/Boss 50% 偏向自身属性, 否则 5 种均等
 	var material: String
 	if is_elite_or_boss and randf() < 0.5:
 		material = _get_biased_material(enemy_type)
 	else:
 		material = ELEMENTAL_MATERIALS[randi() % ELEMENTAL_MATERIALS.size()]
-	held_materials[material] = get_material_count(material) + 1
-	print("[GameManager] 掉落材质: ", material, " (来源: ", enemy_type, ") | 当前持有: ", held_materials)
+	# v1.2 品阶 (GDD 四: heavy/split 白绿, 精英 蓝紫, Boss 紫橙)
+	var tier: int
+	if is_boss:
+		tier = [3, 4][randi() % 2]
+	elif is_elite_or_boss:
+		tier = [2, 3][randi() % 2]
+	else:
+		tier = [0, 1][randi() % 2]
+	if not held_materials.has(material):
+		held_materials[material] = {}
+	var tier_map: Dictionary = held_materials[material]
+	tier_map[tier] = int(tier_map.get(tier, 0)) + 1
+	print("[GameManager] 掉落材质: ", material, " 品阶", MATERIAL_TIER_NAMES.get(tier, "?"), " (来源: ", enemy_type, ")")
 
 ## 精英/Boss 属性偏向 (撕裂者=火, 毒囊=木, 镜影=水, 堡垒=土, Boss 按章节)
 func _get_biased_material(enemy_type: String) -> String:

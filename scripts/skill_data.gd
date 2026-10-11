@@ -11,6 +11,18 @@ enum SkillCategory {
     PASSIVE,     # 被动技能
 }
 
+# v1.2: 技能自带奇幻七元素 (风/火/水/土/雷/光/暗, 随机 roll)
+enum SkillElement {
+    WIND,        # 风
+    FIRE,        # 火
+    WATER,       # 水
+    EARTH,       # 土
+    THUNDER,     # 雷
+    LIGHT,       # 光
+    DARK,        # 暗
+}
+
+
 enum SkillTarget {
     SELF,        # 以自己为中心
     DIRECTION,   # 指定方向
@@ -25,6 +37,8 @@ enum SkillTarget {
 @export var description: String = ""         # 技能描述
 @export var cooldown: float = 3.0            # 冷却时间 (秒)
 @export var energy_cost: float = 0.0         # 能量消耗 (0=不用能量)
+@export var element: int = -1               # v1.2: 奇幻元素 (SkillElement, -1=未 roll)
+@export var material: String = ""           # v1.2: 五行材质 (金/木/水/火/土, 空=未浸篆)
 @export var level: int = 1                   # 当前等级
 @export var max_level: int = 3               # 最大等级
 
@@ -85,6 +99,8 @@ static func from_dict(data: Dictionary) -> SkillData:
     skill.description = data.get("description", "")
     skill.cooldown = data.get("cooldown", 3.0)
     skill.energy_cost = data.get("energy_cost", 0.0)
+    skill.element = data.get("element", -1)
+    skill.material = data.get("material", "")
     skill.damage = data.get("damage", 0.0)
     skill.duration = data.get("duration", 0.0)
     skill.radius = data.get("radius", 0.0)
@@ -97,3 +113,8 @@ static func from_dict(data: Dictionary) -> SkillData:
     skill.radius_increase_per_level = data.get("radius_increase_per_level", 0.0)
     skill.count_increase_per_level = data.get("count_increase_per_level", 0)
     return skill
+
+## v1.2: 随机 roll 一个奇幻元素 (风/火/水/土/雷/光/暗)
+static func roll_element() -> int:
+    var elts: Array[int] = [SkillElement.WIND, SkillElement.FIRE, SkillElement.WATER, SkillElement.EARTH, SkillElement.THUNDER, SkillElement.LIGHT, SkillElement.DARK]
+    return elts[randi() % elts.size()]
