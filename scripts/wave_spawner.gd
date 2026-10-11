@@ -162,6 +162,8 @@ func start_wave(wave_number: int) -> void:
 	
 	# 打乱队列 (随机生成顺序)
 	_shuffle_queue()
+	# v1.2: 记录本层生成总数 (HUD 剩余提示)
+	_wave_spawn_total = _spawn_queue.size()
 	
 	# 通知
 	if _gm:
@@ -207,6 +209,8 @@ func start_node(pack: Dictionary) -> void:
 		for i in range(entry.get("count", 1)):
 			_spawn_queue.push_back({"type": type_id, "config": config})
 	_shuffle_queue()
+	# v1.2: 记录本层生成总数 (HUD 剩余提示)
+	_wave_spawn_total = _spawn_queue.size()
 	if _gm:
 		_gm.start_wave(floor)
 	wave_starting.emit(floor)
@@ -331,6 +335,20 @@ func on_enemy_captured() -> void:
 	_captured_count -= 1
 	if _spawn_queue.is_empty() and _all_spawned:
 		_check_wave_complete()
+
+## v1.2: 本层剩余敌人 (供 HUD 提示), 含已生成未吞噬 + 排队中
+func get_remaining_enemies() -> int:
+	var q: int = _spawn_queue.size()
+	var active: int = 0
+	if _pool and _pool.has_method("get_active_count"):
+		active = _pool.get_active_count()
+	return q + active
+
+## v1.2: 本层已生成总数 (含已吞噬), 供 HUD 显示 剩余/总数
+var _wave_spawn_total: int = 0
+
+func get_wave_spawn_total() -> int:
+	return _wave_spawn_total
 
 ## 检查波次是否完成
 func _check_wave_complete() -> void:
