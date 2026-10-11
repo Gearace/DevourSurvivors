@@ -345,7 +345,10 @@ func drop_elemental_material(enemy_type: String) -> void:
 	# 精英 / Boss
 	if enemy_type in ["elite_tearer", "elite_toxin", "elite_mirror", "elite_fortress", "boss_ch1", "boss_v2_void", "boss_v3_abyss"]:
 		var is_boss: bool = enemy_type in ["boss_ch1", "boss_v2_void", "boss_v3_abyss"]
-		_grant_elemental_drop(enemy_type, true, is_boss)
+		# GDD 四: 精英 1~2 个, Boss 2~3 个 (100% 掉)
+		var drop_count: int = randi_range(1, 2) if not is_boss else randi_range(2, 3)
+		for i in range(drop_count):
+			_grant_elemental_drop(enemy_type, true, is_boss)
 		return
 	# heavy / split 按概率掉
 	var chance: float = 0.0
