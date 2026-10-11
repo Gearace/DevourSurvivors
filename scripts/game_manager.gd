@@ -23,7 +23,7 @@ var current_state: GameState = GameState.MENU
 
 # 全局数据
 var player_stats: Dictionary = {
-	"level": 1,  # v1.1: 保留字段但不再用于经验系统, 仅用于体型/半径同步
+	"level": 1,  # v1.2: 保留字段向后兼容，不再驱动体型（体型 = 20px + 变异卡数量×1px）
 	"xp": 0,  # v1.1: 废弃, 经验系统已移除 (无职业无经验, 成长来自卡牌构筑)
 	"max_hp": 100,
 	"current_hp": 100,
@@ -57,6 +57,12 @@ var chapter: int = 1           # 当前章节号 (GDD 7.5)
 var active_skills: Array[String] = ["swallow_wave"]  # 初始自带吞噬波
 var passive_skills: Array[String] = []  # 被动卡牌
 var relics: Array[String] = []  # 遗物
+
+# v1.2: 技能空间 + 三类卡构筑 (GDD 2.2/2.3)
+## 技能空间: 未浸篆的已选技能 (4 选 1 后进入，可合成/浸篆)
+var skill_space: Array[String] = []
+## 已浸篆生效的三类卡: {"id":,"type":进化卡|变异卡|领域卡,"skill_id":,"material":,"material_tier":int,"duration":int(-1=永久),"elapsed":int}
+var inscribed_cards: Array = []
 
 # 融合检测
 var fusion_results: Dictionary = {}  # 存储已触发的融合结果
@@ -124,15 +130,38 @@ func on_enemy_captured(enemy_type: String, capture_value: float) -> void:
 	player_stats["score"] += int(capture_value * 10)
 	
 	# v1.1: 经验系统已移除 (无职业无经验, 成长来自卡牌构筑)
-## v1.1: 体型/半径同步 — 进化卡选中后调用
-## 不再由吞噬数触发, 而是由通关进化卡选择触发
-func sync_body_on_level_up() -> void:
-	player_stats["level"] += 1
+## v1.2: 体型同步 — 浸篆生效 变异卡 后调用 (GDD 2.0)
+## 体型 = 初始 20px + 变异卡数量×1px + 变异卡效果
+## 保留 level 字段向后兼容，但不再用于体型计算
+var mutation_card_count: int = 0  # 当前生效变异卡数量
+
+func sync_body_on_mutation() -> void:
 	var table = preload("res://scripts/devour_table.gd").new()
-	var new_radius: float = table.body_radius_for_level(player_stats["level"])
+	var new_radius: float = table.body_radius_for_mutation(mutation_card_count)
 	player_stats["capture_range"] = new_radius + 10.0
 	level_up.emit()
-	print("[GameManager] 体型同步! Lv.", player_stats.get("level", 1))
+	print("[GameManager] 体型同步 (v1.2 变异卡驱动)! 变异卡=", mutation_card_count, " 半径=", new_radius)
+
+## v1.2: 每层结束结算 — 已浸篆三类卡有效期 -1，失效的卡技能放回技能空间，材质被消耗 (GDD 2.3)
+func tick_inscribed_cards() -> void:
+	for i in range(inscribed_cards.size() - 1, -1, -1):
+		var card: Dictionary = inscribed_cards[i]
+		if card.get("duration", 1) == -1:  # 永久有效
+			continue
+		card["elapsed"] = int(card.get("elapsed", 0)) + 1
+		if int(card["elapsed"]) >= int(card["duration"]):
+			_inscribe_expired(card)
+			inscribed_cards.remove_at(i)
+			if card.get("type", "") == "变异卡":
+				mutation_card_count = max(0, mutation_card_count - 1)
+				sync_body_on_mutation()
+
+## 沉浸卡失效: 技能放回技能空间, 材质已消耗 (不返还, GDD 2.3)
+func _inscribe_expired(card: Dictionary) -> void:
+	var skill_id: String = card.get("skill_id", "")
+	if skill_id != "" and skill_id not in skill_space and skill_id not in active_skills:
+		skill_space.append(skill_id)
+	print("[GameManager] 沉浸卡失效: ", card.get("name", card.get("id", "")), " → 技能放回技能空间，材质消耗")
 func start_wave(wave_num: int) -> void:
 	current_wave = wave_num
 	difficulty_multiplier = 1.0 + (wave_num - 1) * 0.15

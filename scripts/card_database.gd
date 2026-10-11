@@ -173,3 +173,45 @@ static func get_relic_weights(node_type: int) -> Dictionary:
 		return {"普通": 0.1, "罕见": 0.35, "史诗": 0.35, "传说": 0.15, "神器": 0.05}
 	else:
 		return {"普通": 0.60, "罕见": 0.30, "史诗": 0.09, "传说": 0.01, "神器": 0.0}
+
+# ========== v1.2: 三类卡 (浸篆产物) + 遗物 (道具类, GDD 二/六) ==========
+## 三类卡类型: 进化卡(主动技能) / 变异卡(形态变化, 每+1体型) / 领域卡(被动技能)
+## 三类卡均由「技能 + 五行材质 浸篆」产出，哪类由材质特性决定 (GDD 4 材质特性表)
+const CARD_TYPE_EVOLUTION := "进化卡"   # 主动技能
+const CARD_TYPE_MUTATION := "变异卡"    # 形态变化, +1 体型/张
+const CARD_TYPE_DOMAIN := "领域卡"      # 被动技能
+
+## 获取三类卡类型名
+static func get_three_card_types() -> Array[String]:
+	return [CARD_TYPE_EVOLUTION, CARD_TYPE_MUTATION, CARD_TYPE_DOMAIN]
+
+## 五行材质 → 主要产出卡类型 (简化映射; 实际由 交互矩阵 + 材质特性决定, GDD 4)
+## 金/水 → 进化卡(主动切割/吸引), 木/火 → 变异卡(形态延展/爆发), 土 → 领域卡(被动承载/结界)
+static func material_to_card_type(material: String) -> String:
+	match material:
+		"金", "水": return CARD_TYPE_EVOLUTION
+		"木", "火": return CARD_TYPE_MUTATION
+		"土": return CARD_TYPE_DOMAIN
+		_: return CARD_TYPE_EVOLUTION
+
+## v1.2: 遗物 (道具类) — 5 档稀有度 (GDD 六)。遗物为数值 buff, 不参与浸篆/合成/升级/熔炼, 拾取即生效
+## 稀有度: 普通/罕见/史诗/传说/神器
+static func get_relic_props() -> Array[Dictionary]:
+	return [
+		{"id": "prop_blood_oom", "name": "血誓", "rarity": "普通", "description": "血量+10%，开局回满", "buff": {"max_hp_bonus": 0.10, "start_full_hp": true}},
+		{"id": "prop_gnawer", "name": "吞食者", "rarity": "普通", "description": "啃食速度+10%", "buff": {"gnaw_speed_bonus": 0.10}},
+		{"id": "prop_open_invincible", "name": "坚壁", "rarity": "罕见", "description": "开局无敌 3s", "buff": {"start_invincible": 3.0}},
+		{"id": "prop_wood_bind", "name": "水缚", "rarity": "罕见", "description": "水控遗物，控制时间+50%", "buff": {"control_duration_bonus": 0.5}},
+		{"id": "prop_thunder", "name": "雷引", "rarity": "史诗", "description": "雷/金系技能威力×1.5", "buff": {"element_power": {"雷": 1.5, "金": 1.5}}},
+		{"id": "prop_energy_fever", "name": "能量狂澜", "rarity": "史诗", "description": "能量回速+50%", "buff": {"energy_regen_bonus": 0.5}},
+		{"id": "prop_earth_shield", "name": "土盾", "rarity": "传说", "description": "所有材质抗性+20%", "buff": {"material_resist_bonus": 0.2}},
+		{"id": "prop_void_eye", "name": "虚空之眼", "rarity": "神器", "description": "技能无冷却（仅耗能）", "buff": {"skill_no_cooldown": true}},
+	]
+
+## 按稀有度获取遗物道具 (用于 3 选 1 roll)
+static func get_relic_props_by_rarity(rarity_cn: String) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for p in get_relic_props():
+		if p.get("rarity", "") == rarity_cn:
+			out.append(p)
+	return out

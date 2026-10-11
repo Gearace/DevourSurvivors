@@ -82,7 +82,8 @@ func _sync_from_gm() -> void:
 	if _gm == null:
 		return
 	var stats: Dictionary = _gm.player_stats
-	body_radius = _table.body_radius_for_level(stats.get("level", 1))
+	# v1.2: 体型 = 初始 20px + 变异卡数量×1px (GDD 2.0)，由 GameManager.mutation_card_count 驱动
+	body_radius = _table.body_radius_for_mutation(_gm.mutation_card_count)
 	capture_radius = body_radius + 10.0
 	max_hp = int(stats.get("max_hp", 100))
 

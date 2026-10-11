@@ -10,6 +10,8 @@ extends RefCounted
 
 const GROWTH_PER_LEVEL := 1.0          # 每级体型增量
 const START_BODY_RADIUS := 20.0       # 初始玩家体型
+# v1.2: 体型成长 = 初始 20px + 变异卡数量×1px + 变异卡效果 (GDD 2.0)
+const MUTATION_BODY_BONUS := 1.0     # 每张变异卡 +1px 体型
 
 # ─── 数据表 ─────────────────────────────────────────────
 var one_bite: Dictionary = { "basic": true, "swift": true }
@@ -55,3 +57,7 @@ func get_energy_gain(type_id: String) -> float:
 ## 等级 → 体型半径 (阶梯式成长，GDD 3.2.1)
 func body_radius_for_level(level: int) -> float:
 	return START_BODY_RADIUS + max(0, level - 1) * GROWTH_PER_LEVEL
+
+## v1.2: 体型 = 初始 20px + 变异卡数量×1px (GDD 2.0)；不再由 level 驱动
+func body_radius_for_mutation(mutation_count: int) -> float:
+	return START_BODY_RADIUS + max(0, mutation_count) * MUTATION_BODY_BONUS

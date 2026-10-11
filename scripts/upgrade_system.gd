@@ -176,9 +176,16 @@ func select_card(card: Dictionary) -> void:
 		if not fusion_result.is_empty():
 			print("[UpgradeSystem] 触发融合: ", fusion_result.get("name", ""))
 		_apply_passive_effects(card)
-	# v1.1: 进化卡选中 → 同步体型 (无经验系统, 由选卡驱动)
-	if card.get("category", "") != "Relic":
-		GameManager.sync_body_on_level_up()
+	# v1.2: 浸篆生效 — 变异卡同步体型, 进化/领域卡入已浸篆列表 (GDD 2.0/2.3)
+	var cat: String = card.get("category", "")
+	if cat == "Mutation":
+		GameManager.mutation_card_count += 1
+		GameManager.sync_body_on_mutation()
+	elif cat == "Evolution" or cat == "Domain":
+		GameManager.inscribed_cards.append({
+			"id": card_id, "type": cat, "skill_id": card_id,
+			"duration": int(card.get("duration", 1)), "elapsed": 0,
+		})
 		card_selected.emit(card_id)
 	_close_upgrade_popup()
 
