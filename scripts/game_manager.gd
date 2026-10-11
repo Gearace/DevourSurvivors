@@ -64,6 +64,9 @@ var skill_space: Array[String] = []
 ## 已浸篆生效的三类卡: {"id":,"type":进化卡|变异卡|领域卡,"skill_id":,"material":,"material_tier":int,"duration":int(-1=永久),"elapsed":int}
 var inscribed_cards: Array = []
 
+# v1.2: 遗物 (道具类) — 已拾取遗物 id, 提供数值 buff (GDD 六)
+var relic_buffs: Array[String] = []
+
 # 融合检测
 var fusion_results: Dictionary = {}  # 存储已触发的融合结果
 

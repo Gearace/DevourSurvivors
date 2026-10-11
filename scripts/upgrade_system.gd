@@ -178,6 +178,13 @@ func select_card(card: Dictionary) -> void:
 		_apply_passive_effects(card)
 	# v1.2: 浸篆生效 — 变异卡同步体型, 进化/领域卡入已浸篆列表 (GDD 2.0/2.3)
 	var cat: String = card.get("category", "")
+	# v1.2: 遗物 (道具类, 中文稀有度 + buff) — 不占卡牌槽, 拾取即生效 (GDD 六)
+	if card.has("buff"):
+		var rs = load("res://scripts/relic_system.gd")
+		rs.apply_buff(card, GameManager)
+		card_selected.emit(card_id)
+		_close_upgrade_popup()
+		return
 	if cat == "Mutation":
 		GameManager.mutation_card_count += 1
 		GameManager.sync_body_on_mutation()

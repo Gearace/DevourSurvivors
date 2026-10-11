@@ -10,6 +10,10 @@ var _level_label: Label
 var _energy_label: Label
 var _wave_label: Label
 
+# v1.2: 五行材质计数 (吃怪反馈, GDD 四)
+var _material_label: Label
+var _material_hint: Label
+
 func _ready() -> void:
 	_gm = get_node_or_null("/root/GameManager")
 	
@@ -61,6 +65,25 @@ func _ready() -> void:
 	if ga:
 		ga.add_child(_wave_label)
 
+	# v1.2: 五行材质计数条 (吃怪实时刷新)
+	_material_label = Label.new()
+	_material_label.name = "MaterialLabel"
+	_material_label.position = Vector2(10, 95)
+	_material_label.add_theme_font_size_override("font_size", 12)
+	_material_label.text = "材质 金0 木0 水0 火0 土0"
+	if ga:
+		ga.add_child(_material_label)
+
+	# v1.2: 本层通关 4 选 1 提示 (提示成长线)
+	_material_hint = Label.new()
+	_material_hint.name = "MaterialHint"
+	_material_hint.position = Vector2(10, 112)
+	_material_hint.add_theme_font_size_override("font_size", 11)
+	_material_hint.text = "清层: 技能4选1 + 精英/Boss遗物3选1"
+	_material_hint.modulate = Color(1.0, 0.9, 0.5, 0.85)
+	if ga:
+		ga.add_child(_material_hint)
+
 func _process(_delta: float) -> void:
 	if _gm == null:
 		return
@@ -85,3 +108,21 @@ func _process(_delta: float) -> void:
 	var hp_label = get_node_or_null("HUD_Container/HP_Label")
 	if hp_label and hp_label is Label:
 		hp_label.text = "HP: %d/%d" % [hp, max_hp]
+	# v1.2: 刷新五行材质计数
+	_refresh_materials()
+
+## v1.2: 五行材质计数条 (金/木/水/火/土 + 品阶)
+func _refresh_materials() -> void:
+	if _gm == null or _material_label == null:
+		return
+	if not _gm.has_method("get_material_count"):
+		return
+	var parts: Array[String] = []
+	for mat in ["金", "木", "水", "火", "土"]:
+		var cnt: int = _gm.get_material_count(mat)
+		if cnt > 0:
+			var top: int = _gm.get_material_max_tier(mat)
+			var tier_name: String = _gm.MATERIAL_TIER_NAMES.get(maxi(0, top), "白")
+			parts.append("%s%d(%s)" % [mat, cnt, tier_name])
+	var text: String = "材质 " + (" ".join(parts) if parts.size() > 0 else "无")
+	_material_label.text = text

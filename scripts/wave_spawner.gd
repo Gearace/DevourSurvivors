@@ -435,17 +435,9 @@ func _grant_relic_card_choice() -> void:
 	if node_type != 1 and node_type != 5:
 		return
 	# 按稀有度 roll 3 张遗物卡
-	var drawn: Array[Dictionary] = []
-	var is_boss: bool = (node_type == 5)
-	for i in range(3):
-		var rarity_cn = _roll_relic_rarity_cn(is_boss, i)
-		var relic_pool = CardDatabase.get_cards_by_new_rarity(rarity_cn)
-		if relic_pool.size() == 0:
-			# fallback to common
-			relic_pool = CardDatabase.get_cards_by_new_rarity('普通')
-		if relic_pool.size() > 0:
-			var pick = relic_pool[randi() % relic_pool.size()]
-			drawn.append(pick)
+	# v1.2: 遗物 = 道具类, 按关卡稀有度 roll (GDD 六)
+	var rs = load("res://scripts/relic_system.gd")
+	var drawn: Array[Dictionary] = rs.roll_relics(node_type)
 	if drawn.size() == 0:
 		return
 	# 弹出遗物卡选择 UI (复用 UpgradePopup, 传标识区分)
