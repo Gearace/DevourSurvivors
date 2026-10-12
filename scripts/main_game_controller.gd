@@ -48,6 +48,10 @@ func _ready() -> void:
 	_wave_spawner.wave_starting.connect(_on_wave_starting)
 	_wave_spawner.wave_complete.connect(_on_wave_complete)
 	_wave_spawner.decision_needed.connect(_on_decision_needed)
+	# v1.2: 清层奖励链 (进化卡4选1 + 遗物3选1) 全部完成 → 进路线 3选1
+	var _up = get_node_or_null("UpgradePopup")
+	if _up and _up.has_signal("all_rewards_done"):
+		_up.all_rewards_done.connect(_on_all_rewards_done)
 	if _route_ui:
 		_route_ui.node_chosen.connect(_on_route_chosen)
 
@@ -155,3 +159,8 @@ func _on_decision_needed(floor: int) -> void:
 func _on_route_chosen(pack: Dictionary) -> void:
 	# pack 已交给 spawner.start_node（RouteUI 内部调用）；这里仅记录
 	pass
+
+## v1.2: 清层奖励 (进化卡4选1 + 遗物3选1) 全部完成 → 进路线 3选1
+func _on_all_rewards_done() -> void:
+	if _wave_spawner and _wave_spawner.has_method("_request_next_decision"):
+		_wave_spawner._request_next_decision(_wave_spawner.get_current_wave())

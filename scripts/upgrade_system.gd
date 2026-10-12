@@ -194,6 +194,10 @@ func select_card(card: Dictionary) -> void:
 			"duration": int(card.get("duration", 1)), "elapsed": 0,
 		})
 		card_selected.emit(card_id)
+	# v1.2: 进化卡确认完成 → 放行到 遗物(精英/Boss) / 路线 3选1 (清层奖励链)
+	var sp = get_node_or_null("/root/MainGame/WaveSpawner")
+	if sp and sp.has_method("on_evolution_card_confirmed"):
+		sp.on_evolution_card_confirmed()
 	_close_upgrade_popup()
 
 func _apply_passive_effects(card: Dictionary) -> void:

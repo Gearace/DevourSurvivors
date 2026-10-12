@@ -5,6 +5,8 @@ extends CanvasLayer
 signal card_confirmed(card: Dictionary)
 
 var panel: Control
+var current_mode: String = "upgrade"  # v1.2: "upgrade"=进化卡 | "relic"=遗物
+signal all_rewards_done  # v1.2: 4选1 + 遗物3选1 全部完成, 放行到路线 3选1
 var card_grid: GridContainer
 var confirm_btn: Button
 var title_label: Label
@@ -134,6 +136,11 @@ func show_upgrade(cards: Array[Dictionary]) -> void:
 	current_cards = cards
 	selected_card_idx = -1
 	confirm_btn.disabled = true
+	# v1.2: 进化卡模式, 标题
+	current_mode = "upgrade"
+	if title_label:
+		title_label.text = "技能 4 选 1 — 选 1 张浸篆"
+	_show_skip_button(true)
 	
 	for child in card_grid.get_children():
 		card_grid.remove_child(child)
@@ -164,6 +171,9 @@ func show_relic_choices(cards: Array[Dictionary]) -> void:
 	current_cards = cards
 	selected_card_idx = -1
 	confirm_btn.disabled = true
+	# v1.2: 遗物模式
+	current_mode = "relic"
+	_show_skip_button(false)
 	
 	for child in card_grid.get_children():
 		card_grid.remove_child(child)
@@ -318,8 +328,12 @@ func _on_confirm_pressed() -> void:
 	var card = current_cards[selected_card_idx]
 	print("[UpgradePopup] 确认选择: ", card.get("name", ""))
 	UpgradeSystem.select_card(card)
-	_animate_panel_out()
 	card_confirmed.emit(card)
+	# v1.2: 清层奖励链 — 4选1(进化卡) 完成后, 弹 遗物 3选1 (仅精英/Boss)
+	# 进化卡 4选1 完成 → 放行 (普通层: 直接路线; 精英/Boss: 弹遗物, 遗物完成再 all_rewards_done)
+	# 遗物 3选1 完成 → 放行到路线 3选1
+	_animate_panel_out()
+	all_rewards_done.emit()
 
 func _animate_panel_out() -> void:
 	var tween = create_tween()
@@ -328,6 +342,29 @@ func _animate_panel_out() -> void:
 
 func _on_panel_anim_finished() -> void:
 	visible = false
+
+## v1.2: 跳过按钮 (不选遗物直接进路线)
+var _skip_btn: Button
+
+func _show_skip_button(show: bool) -> void:
+	if _skip_btn == null:
+		_skip_btn = Button.new()
+		_skip_btn.name = "SkipButton"
+		_skip_btn.text = "跳过"
+		_skip_btn.custom_minimum_size = Vector2(120, 44)
+		_skip_btn.pressed.connect(_on_skip_pressed)
+		# 加到 panel 的 vbox
+		var vbox = panel.get_node_or_null("VBox")
+		if vbox:
+			vbox.add_child(_skip_btn)
+	if _skip_btn:
+		_skip_btn.visible = show
+
+func _on_skip_pressed() -> void:
+	# 跳过遗物 3选1, 直接放行到路线 3选1
+	if current_mode == "relic":
+		_animate_panel_out()
+		all_rewards_done.emit()
 
 func _get_rarity_text(rarity: String) -> String:
 	# 英文稀有度 → 中文

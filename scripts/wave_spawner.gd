@@ -350,6 +350,10 @@ var _wave_spawn_total: int = 0
 func get_wave_spawn_total() -> int:
 	return _wave_spawn_total
 
+## v1.2: 当前层号 (供 main 控制器清层奖励链放行到路线 3选1)
+func get_current_wave() -> int:
+	return _current_wave
+
 ## 检查波次是否完成
 func _check_wave_complete() -> void:
 	# 等待一小段时间确保所有敌人都被处理
@@ -362,12 +366,14 @@ func _check_wave_complete() -> void:
 			_gm.end_wave()
 		wave_complete.emit(_current_wave)
 		print("[WaveSpawner] 波次 ", _current_wave, " 完成!")
+		# v1.2: 沉浸卡到期结算 (免疫卡失效 → 技能回技能空间, 材质消耗)
+		if _gm.has_method("tick_inscribed_cards"):
+			_gm.tick_inscribed_cards()
 
 		# v1.1: 通关奖励顺序 — 进化卡 4 选 1 → 遗物卡 3 选 1 (精英/Boss) → 路线决策 3 选 1
+		# v1.2: 清层奖励链 (GDD 七): 进化卡 4选1 → (精英/Boss) 遗物 3选1 → 路线 3选1
+		#  进化卡 4选1 弹完 → all_rewards_done → 弹遗物 (仅精英/Boss) → 再 all_rewards_done → 进路线
 		_grant_evolution_card_choice()
-		_grant_relic_card_choice()
-		# 路线化：层完成后进入「决策时刻」(不再自动 start_wave)
-		_request_next_decision(_current_wave)
 
 ## 启动下一波（命名闭包替代 func: lambda）
 func _start_next_wave(next_wave_num: int) -> void:
@@ -445,12 +451,27 @@ func _grant_evolution_card_choice() -> void:
 ## v1.1: 遗物卡 3 选 1 — 仅精英层/Boss 层通关后弹出
 ## 稀有度按关卡 roll: 普通 60% / 罕见 30% / 史诗 9% / 传说 1% (精英)
 ## Boss 层保底 1 张史诗以上
+## v1.2: 进化卡 4选1 确认完成后调用 (GDD 七 清层奖励链)
+## 普通层 → 直接放行路线 3选1; 精英/Boss → 弹遗物 3选1
+func on_evolution_card_confirmed() -> void:
+	if _gm == null:
+		return
+	var node_type: int = _gm.current_node_type
+	if node_type != 1 and node_type != 5:
+		# 普通层无遗物, 直接进路线 3选1
+		_request_next_decision(_current_wave)
+		return
+	# 精英/Boss: 弹遗物 3选1 (完成后再由 all_rewards_done 放行路线)
+	_grant_relic_card_choice()
+
 func _grant_relic_card_choice() -> void:
 	if _gm == null:
 		return
 	var node_type: int = _gm.current_node_type
 	# 仅精英(1) / Boss(5) 节点掉遗物卡
 	if node_type != 1 and node_type != 5:
+		# 普通层无遗物, 直接放行到路线 3选1
+		_request_next_decision(_current_wave)
 		return
 	# 按稀有度 roll 3 张遗物卡
 	# v1.2: 遗物 = 道具类, 按关卡稀有度 roll (GDD 六)
