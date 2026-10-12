@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 ## MainGame — 主游戏场景控制器
 ## 负责初始化各系统、连接信号、协调游戏流程
 
@@ -48,6 +48,9 @@ func _ready() -> void:
 	_wave_spawner.wave_starting.connect(_on_wave_starting)
 	_wave_spawner.wave_complete.connect(_on_wave_complete)
 	_wave_spawner.decision_needed.connect(_on_decision_needed)
+	# v1.2: 层清反馈 — 本层全部吞噬时, HUD 横幅开始 3s 窗口 (GDD 七)
+	if _wave_spawner.has_signal("wave_cleared"): 
+		_wave_spawner.wave_cleared.connect(_on_wave_cleared)
 	# v1.2: 清层奖励链 (进化卡4选1 + 遗物3选1) 全部完成 → 进路线 3选1
 	var _up = get_node_or_null("UpgradePopup")
 	if _up and _up.has_signal("all_rewards_done"):
@@ -156,6 +159,12 @@ func _on_decision_needed(floor: int) -> void:
 		return
 	_route_ui.show_decision(floor, rec.options)
 
+## v1.2: 层清反馈 — HUD 横幅显示 3s 再隐藏 (GDD 七)
+func _on_wave_cleared(_floor: int) -> void:
+	var hud = get_node_or_null("HUD")
+	if hud and hud.has_method("_on_wave_cleared"):
+		hud._on_wave_cleared(_floor)
+
 func _on_route_chosen(pack: Dictionary) -> void:
 	# pack 已交给 spawner.start_node（RouteUI 内部调用）；这里仅记录
 	pass
@@ -164,3 +173,7 @@ func _on_route_chosen(pack: Dictionary) -> void:
 func _on_all_rewards_done() -> void:
 	if _wave_spawner and _wave_spawner.has_method("_request_next_decision"):
 		_wave_spawner._request_next_decision(_wave_spawner.get_current_wave())
+	# v1.2: 隐藏层清横幅 (奖励链完成 → 进路线 3选1, GDD 七)
+	var hud = get_node_or_null("HUD")
+	if hud and hud.has_method("_hide_floor_banner"):
+		hud._hide_floor_banner()

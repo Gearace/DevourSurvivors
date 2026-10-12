@@ -56,4 +56,18 @@ func _initialize() -> void:
 	print("wave_spawner 方法存在校验: 通过")
 
 	print("=== 测试 ", "全部通过" if all_pass else "存在失败", " ===")
+	# 测试 6: v1.2 层清反馈信号驱动 (wave_cleared 一次, HUD 横幅 3s 窗口)
+	if not sp.has_signal("wave_cleared"):
+		all_pass = false
+		push_error("wave_spawner 应暴露 wave_cleared 信号 (清层反馈驱动)")
+	else:
+		print("wave_cleared 信号存在校验: 通过")
+	# HUD 横幅接线: _on_wave_cleared 显示 + _hide_floor_banner 隐藏 (奖励链完成时)
+	var f = FileAccess.open("res://scripts/hud_controller.gd", FileAccess.READ)
+	var hud_src: String = f.get_as_text() if f else ""
+	if not hud_src.contains("func _on_wave_cleared") or not hud_src.contains("func _hide_floor_banner"):
+		all_pass = false
+		push_error("hud_controller 应有 _on_wave_cleared / _hide_floor_banner 方法")
+	else:
+		print("HUD 横幅接线校验: 通过")
 	quit(0 if all_pass else 1)

@@ -1,4 +1,4 @@
-﻿extends CanvasLayer
+extends CanvasLayer
 ## RouteUI — 路线「决策时刻」控制器 (GDD 7.6 / 5.3)
 ## 职责：层完成后暂停游戏，显示下一层 3 张候选节点卡（3 选 1），
 ## 玩家点选后把选择交给 RouteGenerator.pick_option → wave_spawner.start_node。
@@ -120,6 +120,10 @@ func show_decision(floor: int, options: Array) -> void:
 	if sub:
 		sub.text = _preview_next(rg, floor)
 	title_label.text = "层 %d — 选择路线" % floor
+	# v1.2: 路线 3选1 显示时隐藏残留层清横幅, 避免遮挡候选卡 (GDD 七)
+	var hud = get_node_or_null("../HUD")
+	if hud and hud.has_method("_hide_floor_banner"):
+		hud._hide_floor_banner()
 	_build_cards(options)
 	visible = true
 	# 暂停游戏

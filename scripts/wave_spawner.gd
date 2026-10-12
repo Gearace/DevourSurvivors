@@ -97,6 +97,10 @@ var _captured_count: int = 0  # 本波已吞噬数
 # ─── 信号 ─────────────────────────────────────────
 signal wave_starting(wave_number: int)
 signal wave_complete(wave_number: int)
+var _wave_cleared_fired: bool = false
+
+## v1.2: 层清反馈 (GDD 七) — 本层全部吞噬时发一次, HUD 横幅据此 3s 窗口显示
+signal wave_cleared(wave_number: int)
 signal all_waves_complete
 
 # ─── 引用 ─────────────────────────────────────────
@@ -180,6 +184,7 @@ func start_node(pack: Dictionary) -> void:
 	var node_type: int = pack.get("node_type", 0)
 	_current_wave = floor
 	_captured_count = 0
+	_wave_cleared_fired = false
 
 	if _gm:
 		_gm.current_floor = floor
@@ -365,6 +370,10 @@ func _check_wave_complete() -> void:
 		if _gm:
 			_gm.end_wave()
 		wave_complete.emit(_current_wave)
+		# v1.2: 层清反馈信号 (GDD 七) — 本层全部吞噬时发一次
+		if not _wave_cleared_fired:
+			_wave_cleared_fired = true
+			wave_cleared.emit(_current_wave)
 		print("[WaveSpawner] 波次 ", _current_wave, " 完成!")
 		# v1.2: 沉浸卡到期结算 (免疫卡失效 → 技能回技能空间, 材质消耗)
 		if _gm.has_method("tick_inscribed_cards"):
@@ -393,6 +402,7 @@ func clear_all() -> void:
 	_spawn_queue.clear()
 	_is_generating = false
 	_all_spawned = true
+	_wave_cleared_fired = false
 
 ## 精英掉落结算：若本层是精英节点且已清空，roll 掉落 (GDD 7.3)
 func _grant_elite_reward_if_any() -> void:

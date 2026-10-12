@@ -134,9 +134,9 @@ func _process(_delta: float) -> void:
 		hp_label.text = "HP: %d/%d" % [hp, max_hp]
 	# v1.2: 刷新五行材质计数
 	_refresh_materials()
-	# v1.2: 刷新本层剩余敌人 + 层清横幅
+	# v1.2: 刷新本层剩余敌人
 	_refresh_remaining()
-	_update_banner()
+
 
 ## v1.2: 本层剩余敌人 (吃怪反馈: 还差几只才触发 4 选 1)
 func _refresh_remaining() -> void:
@@ -151,29 +151,21 @@ func _refresh_remaining() -> void:
 	var fb = load("res://scripts/floor_banner.gd")
 	_remaining_label.text = fb.remaining_hint(remaining, total)
 
-## v1.2: 层清横幅 (清层后 3s, 再弹 4 选 1)
-func _update_banner() -> void:
+## 隐藏层清横幅 (奖励链完成 → 进路线 3选1 时调用, GDD 七)
+func _hide_floor_banner() -> void:
+	if _banner:
+		_banner.visible = false
+	_banner_timer = 0.0
+
+## v1.2: 层清横幅 — 由 WaveSpawner.wave_cleared 信号驱动 (GDD 七 清层反馈 3s 窗口)
+func _on_wave_cleared(_floor: int) -> void:
 	if _banner == null:
 		return
-	# 检测刚清层 (WaveSpawner._is_generating 由 true→false 且不在决策 UI)
-	var sp = get_node_or_null("../WaveSpawner")
-	if sp == null or not sp.has_method("get_remaining_enemies"):
-		return
-	var remaining: int = sp.get_remaining_enemies()
 	var rb = load("res://scripts/floor_banner.gd")
-	if remaining <= 0 and _gm.is_playing():
-		# 层清窗口内显示横幅
-		if _banner_timer <= 0.0:
-			_banner.text = rb.cleared_banner_text(_gm.current_wave, "")
-			_banner.visible = true
-		_banner_timer += 1.0 / 60.0
-		if rb.banner_done(_banner_timer):
-			_banner.visible = false
-			_banner_timer = 0.0
-	else:
-		# 未清层或决策中, 隐藏横幅
-		_banner.visible = false
-		_banner_timer = 0.0
+	if _gm:
+		_banner.text = rb.cleared_banner_text(_gm.current_wave, "")
+	_banner.visible = true
+	_banner_timer = 0.0
 
 ## v1.2: 五行材质计数条 (金/木/水/火/土 + 品阶)
 func _refresh_materials() -> void:
