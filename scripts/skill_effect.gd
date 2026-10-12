@@ -110,8 +110,18 @@ func _capture_single(enemy) -> void:
         "type": enemy_type,
         "size": enemy_size,
     }
+    # v1.2: 技能威力倍数 (含遗物) 传入, 放大吞噬收益
+    data["power_mult"] = get_skill_power_multiplier()
     if _player and _player.has_method("_execute_capture"):
         _player._execute_capture(data)
+
+## v1.2: 技能威力结算 (GDD 二: 最终威力 = 基础 × 材质 × 交互矩阵 × 遗物buff)
+## 返回 当前技能威力倍数 (含遗物), 供 _execute_capture 放大收益
+func get_skill_power_multiplier() -> float:
+    var skill_sys = get_node_or_null("/root/MainGame/SkillSystem")
+    if skill_sys and skill_sys.has_method("get_relic_power_bonus"):
+        return skill_sys.get_relic_power_bonus()
+    return 1.0
 
 ## ── 效果工厂方法 ──
 
@@ -349,3 +359,4 @@ func _update_aura(delta: float) -> void:
     # 光环持续吞噬
     if fmod(Time.get_ticks_msec(), 1000) < int(delta * 1000):
         _capture_in_radius(80.0)
+

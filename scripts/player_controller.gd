@@ -267,6 +267,10 @@ func _execute_capture(enemy) -> void:
 		enemy_size = enemy.get_meta("body_radius")
 	
 	var capture_value = _get_capture_value(enemy_type, enemy_size)
+    
+	# v1.2: 技能触发的吞噬, 按技能威力倍数 (含遗物) 放大收益
+	if typeof(enemy) == TYPE_DICTIONARY and enemy.has("power_mult"):
+		capture_value *= float(enemy.get("power_mult", 1.0))
 	
 	# 能量收益 (GDD 3.2.5)
 	var energy_gain: float = _table.get_energy_gain(enemy_type)

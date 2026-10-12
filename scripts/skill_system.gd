@@ -160,6 +160,9 @@ var _active_effects: Array[Node2D] = []  # 当前正在生效的技能效果节�
 var _energy: float = 0.0
 var _max_energy: float = 10.0
 var _energy_regenerate_rate: float = 1.0  # 每秒恢复能量
+var _gm: Node  # v1.2: GameManager 引用 (遗物 buff 结算)
+var _relic_power_bonus: float = 1.0  # v1.2: 遗物技能威力倍数 (GDD 六)
+var _relic_no_cooldown: bool = false  # v1.2: 神器「技能无冷却」
 
 # ─── 信号 ─────────────────────────────────────────
 signal skill_cast_success(skill_id: String)
@@ -168,6 +171,7 @@ signal effect_spawned(effect_node)
 signal effect_removed(effect_node)
 
 func _ready() -> void:
+    _gm = get_node_or_null("/root/GameManager")
     # 初始技能: 吞噬波
     add_skill("swallow_wave")
     print("[SkillSystem] 初始化完成 — 拥有技能: ", _owned_skills.keys())
@@ -181,6 +185,29 @@ func _process(delta: float) -> void:
     
     # 能量自然恢复
     _energy = min(_energy + _energy_regenerate_rate * delta, _max_energy)
+    
+    # v1.2: 遗物 buff 结算 (神器无冷却/能量回速+50%)
+    _apply_relic_buffs()
+
+## v1.2: 遗物 buff 结算 (GDD 六: 最终威力 × 遗物数值 buff)
+## 读 GameManager.relic_buffs + relic 池, 更新 _relic_power_bonus / 无冷却 / 能量回速
+func _apply_relic_buffs() -> void:
+    if _gm == null:
+        return
+    if not _gm.has_method("get_relic_power_bonus"):
+        return
+    _relic_power_bonus = _gm.get_relic_power_bonus()
+    _relic_no_cooldown = _gm.get_relic_no_cooldown()
+    # 能量回速 buff: 每章 50% → _energy_regenerate_rate * 1.5
+    _energy_regenerate_rate = 1.0 * (1.0 + _gm.get_relic_energy_regen_bonus())
+
+## v1.2: 取当前技能威力倍数 (含遗物), 供 skill_effect 结算
+func get_relic_power_bonus() -> float:
+    return _relic_power_bonus
+
+## v1.2: 神器「技能无冷却」判定
+func has_relic_no_cooldown() -> bool:
+    return _relic_no_cooldown
 
 ## 添加技能到_owned
 func add_skill(skill_id: String) -> void:
@@ -246,7 +273,7 @@ func cast_swipe_skill(skill_id: String, direction: Vector2) -> bool:
         return false
     
     # 启动冷却
-    _owned_skills[skill_id]["cooldown_timer"] = def.get("cooldown", 3.0)
+    _owned_skills[skill_id]["cooldown_timer"] = _effective_cooldown(def)
     
     # 执行效果
     var effect = _create_effect(skill_id, def, direction)
@@ -256,6 +283,12 @@ func cast_swipe_skill(skill_id: String, direction: Vector2) -> bool:
         return true
     
     return false
+
+## v1.2: 神器「技能无冷却」判定 — 冷却设 0 (仅耗能)
+func _effective_cooldown(def: Dictionary) -> float:
+    if _relic_no_cooldown:
+        return 0.0
+    return def.get("cooldown", 3.0)
 
 ## 释放技能 (双击)
 func cast_double_skill(skill_id: String) -> bool:
@@ -270,7 +303,8 @@ func cast_double_skill(skill_id: String) -> bool:
         return false
     
     # 启动冷却
-    _owned_skills[skill_id]["cooldown_timer"] = def.get("cooldown", 3.0)
+    # v1.2: 神器无冷却时设 0
+    _owned_skills[skill_id]["cooldown_timer"] = _effective_cooldown(def)
     
     # 执行效果
     var effect = _create_effect(skill_id, def, Vector2.ZERO)
@@ -391,5 +425,6 @@ func remove_effect(effect_node: Node2D) -> void:
     if effect_node in _active_effects:
         _active_effects.erase(effect_node)
     effect_removed.emit(effect_node)
+
 
 

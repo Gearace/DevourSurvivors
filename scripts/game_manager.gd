@@ -67,6 +67,29 @@ var inscribed_cards: Array = []
 # v1.2: 遗物 (道具类) — 已拾取遗物 id, 提供数值 buff (GDD 六)
 var relic_buffs: Array[String] = []
 
+## v1.2: 遗物数值 buff 汇总 (GDD 六: 最终威力 × 遗物buff)
+func get_relic_power_bonus() -> float:
+	var rs = load("res://scripts/relic_system.gd")
+	return rs.total_power_buff(relic_buffs)
+
+## v1.2: 神器「技能无冷却」判定
+func get_relic_no_cooldown() -> bool:
+	for rid in relic_buffs:
+		if rid == "prop_void_eye":
+			return true
+	return false
+
+## v1.2: 遗物能量回速 buff (每 50% 累加)
+func get_relic_energy_regen_bonus() -> float:
+	var bonus: float = 0.0
+	var db = load("res://scripts/card_database.gd")
+	for p in db.get_relic_props():
+		if p.get("id", "") in relic_buffs:
+			var buff: Dictionary = p.get("buff", {})
+			if "energy_regen_bonus" in buff:
+				bonus = maxf(bonus, float(buff["energy_regen_bonus"]))
+	return bonus
+
 # 融合检测
 var fusion_results: Dictionary = {}  # 存储已触发的融合结果
 
