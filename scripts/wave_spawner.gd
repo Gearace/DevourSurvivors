@@ -88,7 +88,6 @@ var _wave_configs: Array = [
 # ─── 内部状态 ─────────────────────────────────────────
 var _current_wave: int = 0
 var _spawn_queue: Array = []
-var _spawn_timer: float = 0.0
 var _spawn_interval: float = 0.5  # 每 0.5 秒生成一个敌人
 var _is_generating: bool = false
 var _all_spawned: bool = false
@@ -127,14 +126,12 @@ func _process(delta: float) -> void:
 	if not _is_generating:
 		return
 	
-	# 生成队列中的敌人
-	_spawn_timer -= delta
-	if _spawn_timer <= 0 and not _spawn_queue.is_empty():
+	# 生成队列中的敌人 (v1.2: 队列有空位时刷怪, 被吞噬后自动补位)
+	if not _spawn_queue.is_empty() and _pool.get_active_count() < _wave_spawn_total:
 		_spawn_next_enemy()
-		_spawn_timer = _spawn_interval
 	
-	# 检查波次是否完成
-	if _spawn_queue.is_empty() and _all_spawned:
+	# v1.2: 清层判定 — 本层剩余(队列+活跃)归零即清层, 不要求队列排空
+	if get_remaining_enemies() <= 0:
 		_check_wave_complete()
 
 ## 开始指定波次
@@ -338,7 +335,7 @@ func _get_random_edge_position() -> Vector2:
 ## 敌人被吞噬时调用
 func on_enemy_captured() -> void:
 	_captured_count -= 1
-	if _spawn_queue.is_empty() and _all_spawned:
+	if _is_generating and _spawn_queue.is_empty() and _all_spawned:
 		_check_wave_complete()
 
 ## v1.2: 本层剩余敌人 (供 HUD 提示), 含已生成未吞噬 + 排队中
@@ -359,30 +356,31 @@ func get_wave_spawn_total() -> int:
 func get_current_wave() -> int:
 	return _current_wave
 
-## 检查波次是否完成
+## 清层判定 (v1.2)
 func _check_wave_complete() -> void:
-	# 等待一小段时间确保所有敌人都被处理
-	var active_count: int = 0
-	if _pool:
-		active_count = _pool.get_active_count()
-	if active_count <= 0:
-		_is_generating = false
-		if _gm:
-			_gm.end_wave()
-		wave_complete.emit(_current_wave)
-		# v1.2: 层清反馈信号 (GDD 七) — 本层全部吞噬时发一次
-		if not _wave_cleared_fired:
-			_wave_cleared_fired = true
-			wave_cleared.emit(_current_wave)
-		print("[WaveSpawner] 波次 ", _current_wave, " 完成!")
-		# v1.2: 沉浸卡到期结算 (免疫卡失效 → 技能回技能空间, 材质消耗)
-		if _gm.has_method("tick_inscribed_cards"):
-			_gm.tick_inscribed_cards()
-
-		# v1.1: 通关奖励顺序 — 进化卡 4 选 1 → 遗物卡 3 选 1 (精英/Boss) → 路线决策 3 选 1
-		# v1.2: 清层奖励链 (GDD 七): 进化卡 4选1 → (精英/Boss) 遗物 3选1 → 路线 3选1
-		#  进化卡 4选1 弹完 → all_rewards_done → 弹遗物 (仅精英/Boss) → 再 all_rewards_done → 进路线
-		_grant_evolution_card_choice()
+	# 清层判定 (v1.2): 本层剩余(生成队列+活跃敌人)归零 即清层,
+	# 不再要求生成队列排空 — 修复 最后几只还在队列时 清层判定断的问题
+	if not _is_generating:
+		return
+	if _pool == null:
+		_pool = get_node_or_null("../ObjectPool")
+		if _pool == null:
+			return
+	var remaining: int = _spawn_queue.size() + _pool.get_active_count()
+	if remaining > 0:
+		return
+	_is_generating = false
+	if _gm:
+		_gm.end_wave()
+	wave_complete.emit(_current_wave)
+	# v1.2: 层清反馈信号 (GDD 七) — 本层全部吞噬时发一次
+	if not _wave_cleared_fired:
+		_wave_cleared_fired = true
+		wave_cleared.emit(_current_wave)
+	print("[WaveSpawner] 层 " + str(_current_wave) + " 清层!")
+	if _gm.has_method("tick_inscribed_cards"):
+		_gm.tick_inscribed_cards()
+	_grant_evolution_card_choice()
 
 ## 启动下一波（命名闭包替代 func: lambda）
 func _start_next_wave(next_wave_num: int) -> void:
