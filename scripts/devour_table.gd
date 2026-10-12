@@ -15,12 +15,24 @@ const MUTATION_BODY_BONUS := 1.0     # 每张变异卡 +1px 体型
 
 # ─── 数据表 ─────────────────────────────────────────────
 var one_bite: Dictionary = { "basic": true, "swift": true }
-var gnaw: Dictionary = { "basic": 0.0, "swift": 0.0, "heavy": 2.0, "split": 3.0, "decoy": 3.0, "boss": 8.0 }
-var gnaw_energy_per_sec: Dictionary = { "basic": 0.0, "swift": 0.0, "heavy": 1.0, "split": 0.8, "decoy": 1.2, "boss": 2.0 }
-var gnaw_hp_dmg: Dictionary = { "basic": 0.0, "swift": 0.0, "heavy": 3.0, "split": 0.0, "decoy": 5.0, "boss": 6.0 }
-var collision_dmg: Dictionary = { "basic": 0.0, "swift": 0.0, "heavy": 4.0, "split": 3.0, "decoy": 5.0, "boss": 8.0 }
-var collision_pushback: Dictionary = { "basic": 0.0, "swift": 0.0, "heavy": 90.0, "split": 70.0, "decoy": 110.0, "boss": 160.0 }
-var energy_gain: Dictionary = { "basic": 2.0, "swift": 1.0, "heavy": 3.0, "split": 2.0, "decoy": 0.0, "boss": 10.0 }
+var gnaw: Dictionary = { "basic": 0.0, "swift": 0.0, "heavy": 2.0, "split": 3.0, "decoy": 3.0, "boss": 8.0,
+	"boss_ch1": 12.0, "boss_v2_void": 12.0, "boss_v3_abyss": 12.0,
+	"elite_tearer": 5.0, "elite_toxin": 4.0, "elite_mirror": 3.0, "elite_fortress": 10.0 }
+var gnaw_energy_per_sec: Dictionary = { "basic": 0.0, "swift": 0.0, "heavy": 1.0, "split": 0.8, "decoy": 1.2, "boss": 2.0,
+	"boss_ch1": 2.0, "boss_v2_void": 2.0, "boss_v3_abyss": 2.0,
+	"elite_tearer": 1.0, "elite_toxin": 0.8, "elite_mirror": 0.8, "elite_fortress": 0.0 }
+var gnaw_hp_dmg: Dictionary = { "basic": 0.0, "swift": 0.0, "heavy": 3.0, "split": 0.0, "decoy": 5.0, "boss": 6.0,
+	"boss_ch1": 3.0, "boss_v2_void": 3.0, "boss_v3_abyss": 3.0,
+	"elite_tearer": 2.0, "elite_toxin": 3.0, "elite_mirror": 2.0, "elite_fortress": 0.0 }
+var collision_dmg: Dictionary = { "basic": 0.0, "swift": 0.0, "heavy": 4.0, "split": 3.0, "decoy": 5.0, "boss": 8.0,
+	"boss_ch1": 15.0, "boss_v2_void": 15.0, "boss_v3_abyss": 15.0,
+	"elite_tearer": 6.0, "elite_toxin": 5.0, "elite_mirror": 4.0, "elite_fortress": 0.0 }
+var collision_pushback: Dictionary = { "basic": 0.0, "swift": 0.0, "heavy": 90.0, "split": 70.0, "decoy": 110.0, "boss": 160.0,
+	"boss_ch1": 160.0, "boss_v2_void": 160.0, "boss_v3_abyss": 160.0,
+	"elite_tearer": 120.0, "elite_toxin": 110.0, "elite_mirror": 90.0, "elite_fortress": 130.0 }
+var energy_gain: Dictionary = { "basic": 2.0, "swift": 1.0, "heavy": 3.0, "split": 2.0, "decoy": 0.0, "boss": 10.0,
+	"boss_ch1": 10.0, "boss_v2_void": 10.0, "boss_v3_abyss": 10.0,
+	"elite_tearer": 5.0, "elite_toxin": 5.0, "elite_mirror": 5.0, "elite_fortress": 5.0 }
 
 # ─── 查询 API ─────────────────────────────────────────────
 

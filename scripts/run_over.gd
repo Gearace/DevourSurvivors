@@ -1,4 +1,4 @@
-﻿extends CanvasLayer
+extends CanvasLayer
 ## RunOver — 死亡结算 / 章节推进 UI (GDD 7.7 / 5.10)
 ## 职责：
 ##   · 监听 GameManager.player_died → 显示 run over 面板（得分/最高层/永恒之环保留 1 卡）
@@ -151,8 +151,9 @@ func _populate_stats(cleared_chapter: bool) -> void:
 	stat_label.text = "\n".join(lines)
 	# 永恒之环：死亡时若持有该遗物，保留 1 张卡进下一局
 	var has_ring: bool = false
-	if _gm.has("relics"):
-		has_ring = _gm.relics.has("eternal_ring")
+	# _gm 是 Node(GameManager), Node.has() 判子节点而非属性 — 改用成员访问
+	if _gm.relics.has("eternal_ring"):
+		has_ring = true
 	var ring_txt := ""
 	if has_ring:
 		# 保留牌组最后一张（简化；正式随机 1 张）

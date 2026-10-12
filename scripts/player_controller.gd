@@ -267,7 +267,7 @@ func _execute_capture(enemy) -> void:
 		enemy_size = enemy.get_meta("body_radius")
 	
 	var capture_value = _get_capture_value(enemy_type, enemy_size)
-    
+	
 	# v1.2: 技能触发的吞噬, 按技能威力倍数 (含遗物) 放大收益
 	if typeof(enemy) == TYPE_DICTIONARY and enemy.has("power_mult"):
 		capture_value *= float(enemy.get("power_mult", 1.0))
@@ -326,6 +326,13 @@ func _get_capture_value(enemy_type: String, enemy_size: float) -> float:
 		"split": 1.5,
 		"decoy": 0.0,
 		"boss": 10.0,
+		"boss_ch1": 10.0,
+		"boss_v2_void": 10.0,
+		"boss_v3_abyss": 10.0,
+		"elite_tearer": 5.0,
+		"elite_toxin": 5.0,
+		"elite_mirror": 5.0,
+		"elite_fortress": 5.0,
 	}
 	return values.get(enemy_type, 1.0)
 ## 中毒 DoT (GDD 5.8 elite_toxin)：每秒 _dps，持续 _duration 秒
