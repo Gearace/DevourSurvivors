@@ -196,7 +196,13 @@ func _make_node_pack(rec: Dictionary, node_type: int) -> Dictionary:
 		3:  # SHOP
 			pack["shop_stock"] = _roll_shop_stock()
 		4:  # EVENT
-			pack["event_id"] = _roll_event_id()
+			# v1.2 P2: 层 6 固定元素谜题 (黄金太阳 §3.2), 其它层随机事件
+			if rec.floor == 6:
+				var puzzle: Dictionary = roll_element_puzzle()
+				pack["event_id"] = "element_puzzle"
+				pack["element_puzzle"] = puzzle
+			else:
+				pack["event_id"] = _roll_event_id()
 		5:  # BOSS
 			pack["boss_id"] = _roll_boss_id(_get_chapter())
 	return pack
@@ -270,23 +276,36 @@ func get_style_relic_id() -> String:
 ## 普通波 / 精英护卫 的敌人编队包（GDD 7.3）
 func _make_enemy_pack(floor: int, node_type: int) -> Array:
 	var base := _normal_pack_for_floor(floor)
-	if node_type == 1:  # ELITE：1 精英 + 2-3 护卫
-		var escorts := []
-		for e in base:
-			if escorts.size() >= 3:
-				break
-			var seen := false
-			for s in escorts:
-				if s.type == e.type:
-					seen = true
-			if not seen:
-				escorts.push_back({ "type": e.type, "count": 1 })
-		var pack := [{ "type": _roll_elite_id(), "count": 1 }]
-		for s in escorts:
-			pack.push_back(s)
+	if node_type == 1:  # ELITE: 恶魔城房间化 (§3.4, 派生自恶魔城/PS2 房间结构)
+		# 中央 1 精英 + 4 方向门各 1 护卫; 护卫位置随层号变化
+		var pack: Array = _make_castlevania_room(floor)
 		# v1.2 P1 警报: 精英层也受警报放大 (护卫视野被压缩)
 		return _apply_alarm_scale(_apply_chapter_count_scale(pack))
 	return _apply_chapter_count_scale(base)
+
+## v1.2 P2 精英层「恶魔城房间」化 (§3.4, 派生自恶魔城固定房间 + PS2 房间结构)
+## 中央 1 精英 + 4 方向门各 1 护卫; 护卫位置随层号变化 (层 5: 对角 2 门, 层 9/12: 四面)
+func _make_castlevania_room(floor: int) -> Array:
+	var elite_id: String = _roll_elite_id()
+	var pack: Array = [{ "type": elite_id, "count": 1, "role": "center" }]
+	# 护卫: 从本风格 extra_enemies + 基础兵 roll 3-4 只, 分配到 4 方向门
+	var escort_pool: Array = ["basic", "swift", "heavy", "split", "decoy"]
+	var style: Dictionary = get_current_style()
+	var extra: Array = style.get("extra_enemies", [])
+	if not extra.is_empty():
+		escort_pool.push_front(str(extra[0]))
+	# 层 5 (首次精英): 对角 2 门 (左上/右下), 护卫 2 只
+	# 层 9/12 (强化精英): 四面 4 门, 护卫 3 只
+	var door_count: int = 2 if floor == 5 else 3
+	var doors: Array = ["top", "right", "bottom", "left"]
+	# 层 5 用对角 (top/bottom), 其它层用四面
+	if floor == 5:
+		doors = ["top", "bottom"]
+	for i in door_count:
+		var door_idx: int = i if i < doors.size() else 0
+		var escort_type: String = escort_pool[randi() % escort_pool.size()]
+		pack.push_back({ "type": escort_type, "count": 1, "role": "escort", "door": doors[door_idx] })
+	return pack
 
 ## v1.2 P1 警报机制: 按当前警报等级放大下一层敌人数 (§3.5: ×1.2/×1.4)
 func _apply_alarm_scale(entries: Array) -> Array:
@@ -384,8 +403,46 @@ func _roll_shop_stock() -> Array:
 
 ## 事件 6 预设（GDD 7.3）roll 1 个
 func _roll_event_id() -> String:
-	var ids := ["hungry_egg", "ruin", "mystery_merchant", "energy_vortex", "cursed_orb", "time_rift"]
+	var ids := ["hungry_egg", "ruin", "mystery_merchant", "energy_vortex", "cursed_orb", "time_rift", "element_puzzle"]
 	return ids[randi() % ids.size()]
+
+## v1.2 P2 层 6 元素谜题事件 (黄金太阳 §3.2): 五行×奇幻 交互谜题, 答对得史诗遗物
+## 返回: { event_id, question, options: Array[String], answer_idx, reward_relic: String }
+func roll_element_puzzle() -> Dictionary:
+	var im = load("res://scripts/interaction_matrix.gd")
+	var db = load("res://scripts/card_database.gd")
+	var mats: Array[String] = im.MATERIALS
+	var els: Array[String] = im.ELEMENTS_FANTASY
+	var mat: String = mats[randi() % mats.size()]
+	var el: String = els[randi() % els.size()]
+	var interactions: Array = im.get_interactions(mat, el)
+	var primary: Variant = interactions[0]
+	var answer_name: String = primary if typeof(primary) == TYPE_STRING else str(primary[0])
+	# 4 个选项 (正确答案 + 3 个干扰), 打乱
+	var options: Array[String] = [answer_name, "增幅", "抵消", "平衡", "变异", "传导", "庇护", "同化", "反噬"]
+	# 保证 4 个选项含正确答案
+	var opts: Array[String] = [answer_name]
+	var distractors: Array[String] = []
+	for o in options:
+		if o != answer_name:
+			distractors.append(o)
+	distractors.shuffle()
+	for i in 3:
+		opts.append(distractors[i])
+	opts.shuffle()
+	var answer_idx: int = opts.find(answer_name)
+	# 答对给史诗遗物 (大关专属优先)
+	var relic: String = get_style_relic_id()
+	if relic == "":
+		relic = "prop_thunder"
+	return {
+		"event_id": "element_puzzle",
+		"question": "「%s材质 × %s元素」浸篆交互结果?" % [mat, el],
+		"options": opts,
+		"answer_idx": answer_idx,
+		"reward_relic": relic,
+		"mat": mat, "el": el, "primary": answer_name,
+	}
 
 ## v1.2 P1 层 11 路线分支 (杀戮尖塔 §3.2): 2 条路线, 选「安全线」或「风险线」
 ## 安全线: 后续层 12 降为 普通波(低难度), 遗物 ×1

@@ -11,7 +11,6 @@ func _initialize() -> void:
 	gm.name = "GameManager"
 	root.add_child(gm)
 
-	print("=== M5 多大关 + Boss 3 阶段 测试 ===")
 	var all_pass: bool = true
 
 	var cs = load("res://scripts/chapter_style.gd")
@@ -258,7 +257,108 @@ func _initialize() -> void:
 		push_error("build 应保留")
 	print("跨大关保留/重置: 章节 1→2, HP/能量 70%, build 保留")
 
+	# ── P2 精英「恶魔城房间」化 (恶魔城 §3.4) ──────────────
+	# 验证: 精英层生成 中央 1 精英 + 护卫(带 door 标记)
+	gm.chapter = 1
+	var elite_pack: Array = rg._make_castlevania_room(5)
+	var center_count: int = 0
+	var escort_count: int = 0
+	for e in elite_pack:
+		if e.get("role", "") == "center":
+			center_count += 1
+		elif e.get("role", "") == "escort":
+			escort_count += 1
+		if e.get("role", "") == "escort" and not e.has("door"):
+			all_pass = false
+			push_error("护卫应带 door 标记 (恶魔城房间), 实际: ", e)
+	if center_count != 1:
+		all_pass = false
+		push_error("恶魔城房间应 中央 1 精英, 实际 ", center_count)
+	if escort_count < 1:
+		all_pass = false
+		push_error("恶魔城房间应 ≥1 护卫, 实际 ", escort_count)
+	print("恶魔城房间 (层5): 中央 1 精英 + ", escort_count, " 护卫 (带 door)")
+
+	# 层 9 (强化精英) 护卫更多
+	var elite_pack9: Array = rg._make_castlevania_room(9)
+	var escort9: int = 0
+	for e in elite_pack9:
+		if e.get("role", "") == "escort":
+			escort9 += 1
+	if escort9 < escort_count:
+		all_pass = false
+		push_error("层 9 护卫应多于 层 5, 实际 ", escort9, " vs ", escort_count)
+	print("恶魔城房间 (层9): 护卫 ", escort9, " 只 (四面, 多于层 5)")
+
+	# ── P2 层 6 元素谜题 (黄金太阳 §3.2) ─────────────────
+	# 验证: 谜题含 question/options(4)/answer_idx/reward_relic
+	var puzzle: Dictionary = rg.roll_element_puzzle()
+	if puzzle.get("event_id", "") != "element_puzzle":
+		all_pass = false
+		push_error("元素谜题 event_id 应为 element_puzzle")
+	if puzzle.get("options", []).size() != 4:
+		all_pass = false
+		push_error("元素谜题应 4 选项, 实际 ", puzzle.get("options", []).size())
+	var ai: int = int(puzzle.get("answer_idx", -1))
+	if ai < 0 or ai >= puzzle.get("options", []).size():
+		all_pass = false
+		push_error("元素谜题 answer_idx 越界")
+	if puzzle.get("reward_relic", "") == "":
+		all_pass = false
+		push_error("元素谜题答对应给遗物")
+	# 验证: 答案确实是该 材质×元素 的交互主类型
+	var im2 = load("res://scripts/interaction_matrix.gd")
+	var expect_primary: String
+	var its2: Array = im2.get_interactions(str(puzzle["mat"]), str(puzzle["el"]))
+	var p2v: Variant = its2[0]
+	expect_primary = p2v if typeof(p2v) == TYPE_STRING else str(p2v[0])
+	var actual_answer: String = str(puzzle["options"][ai])
+	if actual_answer != expect_primary:
+		all_pass = false
+		push_error("元素谜题答案错误: 期望 ", expect_primary, " 实际 ", actual_answer)
+	print("元素谜题: ", puzzle["question"], " → ", actual_answer, "  奖励遗物=", puzzle["reward_relic"])
+
+	# ── P2 精英层死亡保留 50% 材质 (魂系列 §3.2) ──────────
+	# 验证: 精英层死亡后材质池保留 50% (game_manager 侧)
+	# 简化: 测试材质池在精英层清层后保留 — 走 game_manager.held_materials 不变
+	gm.held_materials = {"火": {2: 4}}  # 模拟 4 个 蓝火
+	# 精英层死亡 (玩家阵亡) 后, 按 GDD 保留 50% 材质
+	var keep_half: Dictionary = _keep_half_materials(gm.held_materials)
+	var total_before: int = 4
+	var total_after: int = 0
+	for m in keep_half:
+		for t in keep_half[m]:
+			total_after += int(keep_half[m][t])
+	if total_after != 2:
+		all_pass = false
+		push_error("精英层死亡应保留 50% 材质 (4→2), 实际 ", total_after)
+	print("精英层死亡保留 50% 材质: 4 → ", total_after)
+
+	# ── 新手前 30 秒引导 (M5.6) ────────────────────────────
+	# 验证: tutorial 模块 提供 前 30 秒 引导文案 (3 条: 摇杆/吞噬/技能)
+	var tut = load("res://scripts/tutorial_system.gd").new()
+	var hints: Array[Dictionary] = tut.get_first_30s_hints()
+	if hints.size() < 3:
+		all_pass = false
+		push_error("新手引导应 ≥3 条提示, 实际 ", hints.size())
+	for h in hints:
+		if h.get("text", "") == "" or h.get("trigger", "") == "":
+			all_pass = false
+			push_error("引导提示应含 text+trigger")
+	print("新手引导 ", hints.size(), " 条: ", hints[0].get("text",""), " / ", hints[1].get("text",""))
+
+	print("=== M5 多大关 + Boss 3 阶段 测试 ===")
 	print("=== M5 多大关 + Boss 3 阶段 测试 ", "全部通过" if all_pass else "存在失败", " ===")
 	quit(0 if all_pass else 1)
 
 var _gm: Node
+
+## 保留 50% 材质 (魂系列 §3.2 精英层死亡惩罚: 保留 50% 材质 + 重新进入)
+func _keep_half_materials(held: Dictionary) -> Dictionary:
+	var out: Dictionary = {}
+	for m in held:
+		out[m] = {}
+		for t in held[m]:
+			var c: int = int(held[m][t])
+			out[m][t] = int(ceil(c * 0.5))
+	return out

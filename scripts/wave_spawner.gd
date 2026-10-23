@@ -298,7 +298,8 @@ func _is_event_story(pack: Dictionary) -> bool:
 	if pack.get("node_type", 0) != 4:
 		return false
 	var eid: String = pack.get("event_id", "")
-	return eid in ["time_rift", "mystery_merchant"]
+	# v1.2 P2: 元素谜题也是非战斗事件 (不刷怪, HUD 侧显示答题)
+	return eid in ["time_rift", "mystery_merchant", "element_puzzle"]
 
 ## 按节点类型覆盖敌人属性（精英/Boss 体型 + 层号缩放）
 func _apply_node_overrides(config: Dictionary, pack: Dictionary, type_id: String) -> Dictionary:

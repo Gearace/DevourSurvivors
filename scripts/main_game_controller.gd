@@ -86,7 +86,38 @@ func _ready() -> void:
 		if _wave_spawner:
 			_wave_spawner.start_node(p1)
 	
+	# M5.6 新手前 30 秒引导: 创建提示 Label + 启动计时
+	_setup_tutorial()
 	print("[MainGame] 场景初始化完成")
+
+## M5.6 新手前 30 秒引导 (路线化后文案)
+var _tutorial: RefCounted
+var _tutorial_label: Label
+var _tutorial_time: float = 0.0
+
+func _setup_tutorial() -> void:
+	_tutorial = load("res://scripts/tutorial_system.gd")
+	if _tutorial == null:
+		return
+	# 第 1 条: 摇杆移动
+	_show_hint(_tutorial.hint_by_trigger("floor_1_start").get("text", ""))
+
+func _show_hint(text: String) -> void:
+	if text == "":
+		if _tutorial_label and is_instance_valid(_tutorial_label):
+			_tutorial_label.visible = false
+		return
+	if _tutorial_label == null or not is_instance_valid(_tutorial_label):
+		_tutorial_label = Label.new()
+		_tutorial_label.name = "TutorialHint"
+		_tutorial_label.position = Vector2(0, 1180)
+		_tutorial_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_tutorial_label.size = Vector2(720, 40)
+		_tutorial_label.add_theme_font_size_override("font_size", 18)
+		_tutorial_label.self_modulate = Color(1.0, 0.95, 0.6, 1.0)
+		add_child(_tutorial_label)
+	_tutorial_label.text = text
+	_tutorial_label.visible = true
 
 func _on_wave_starting(wave_num: int) -> void:
 	print("[MainGame] === 波次 ", wave_num, " ===")
@@ -101,6 +132,17 @@ func _on_player_captured(type: String, value: float) -> void:
 		_wave_spawner.on_enemy_captured()
 
 func _process(delta: float) -> void:
+	# M5.6 新手引导计时 (前 30 秒 3 条轮播)
+	if _tutorial != null and _tutorial_time < 30.0:
+		_tutorial_time += delta
+		var cur: String = _tutorial.current_hint(_tutorial_time)
+		if cur != "" and _tutorial_label and is_instance_valid(_tutorial_label):
+			if _tutorial_label.text != cur:
+				_tutorial_label.text = cur
+			_tutorial_label.visible = true
+		elif _tutorial_label and is_instance_valid(_tutorial_label):
+			_tutorial_label.visible = false
+
 	# 每帧更新敌人玩家引用
 	if _player and _pool:
 		var enemies = _pool.get_active_enemies()
