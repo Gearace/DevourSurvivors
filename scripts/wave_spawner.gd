@@ -411,7 +411,7 @@ func _grant_elite_reward_if_any() -> void:
 		return
 	if randf() < 0.6:
 		# 遗物：从遗物池随机 1 个
-		var relic_pool = CardDatabase.get_cards_by_rarity("Relic")
+		var relic_pool = load("res://scripts/card_database.gd").get_cards_by_rarity("Relic")
 		if relic_pool.size() > 0:
 			var pick = relic_pool[randi() % relic_pool.size()]
 			if not _gm.relics.has(pick.get("id", "")):
@@ -419,7 +419,7 @@ func _grant_elite_reward_if_any() -> void:
 			print("[WaveSpawner] 精英掉落遗物: ", pick.get("name", "?"))
 	else:
 		# 传说卡：从传说池随机 1 张进牌组
-		var leg_pool = CardDatabase.get_cards_by_rarity("Legendary")
+		var leg_pool = load("res://scripts/card_database.gd").get_cards_by_rarity("Legendary")
 		if leg_pool.size() > 0:
 			var pick = leg_pool[randi() % leg_pool.size()]
 			_gm.add_card_to_deck(pick.get("id", ""))
@@ -432,7 +432,7 @@ func _grant_evolution_card_choice() -> void:
 		return
 	# 进化卡池 (v1.1: 11 技能 × 5 材质 = 55 张)
 	# 简化: 从 CardDatabase 的所有非遗物卡中抽取
-	var evo_pool = CardDatabase.get_all_cards()
+	var evo_pool = load("res://scripts/card_database.gd").get_all_cards()
 	# 过滤出非 Relic 类
 	var filtered: Array[Dictionary] = []
 	for card in evo_pool:

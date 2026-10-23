@@ -2,6 +2,13 @@ extends Node
 ## upgrade_system.gd
 ## 升级抽卡系统 — 负责升级触发、卡牌抽取、保底机制、流派引导
 ## 与 GameManager 配合工作
+## M4c: headless 直载时 CardDatabase 无全局类名, 统一走 load()
+
+const CARD_DB_PATH := "res://scripts/card_database.gd"
+
+## v1.2: 兼容 load() 的卡牌数据访问 (静态方法)
+func _db() -> Variant:
+	return load(CARD_DB_PATH)
 
 signal cards_drawn(cards: Array)
 signal card_selected(card_id: String)
@@ -33,7 +40,7 @@ func draw_upgrade_cards() -> Array[Dictionary]:
 	for i in CARDS_TO_DRAW:
 		if available.is_empty():
 			break
-		var weights = CardDatabase.get_rarity_weights(current_level)
+		var weights = _db().get_rarity_weights(current_level)
 		if pity_counter >= PITY_THRESHOLD:
 			weights["Uncommon"] = 1.0
 		weights = _apply_build_guidance(weights, build_type, available)
@@ -53,7 +60,7 @@ func draw_upgrade_cards() -> Array[Dictionary]:
 
 func _get_card_pool() -> Array[Dictionary]:
 	var pool: Array[Dictionary] = []
-	var all_cards = CardDatabase.get_all_cards()
+	var all_cards = _db().get_all_cards()
 	for card in all_cards:
 		var cid = card.get("id", "")
 		if not GameManager.has_card(cid):
@@ -78,7 +85,7 @@ func _detect_build_type() -> String:
 	var deck = GameManager.player_deck
 	var core_counts: Dictionary = {"Core": 0, "Component": 0, "Resonance": 0}
 	for card_id in deck:
-		var card = CardDatabase.find_card_by_id(card_id)
+		var card = _db().find_card_by_id(card_id)
 		if card.is_empty():
 			continue
 		var cat = card.get("category", "")
@@ -264,4 +271,4 @@ func debug_print_pool() -> void:
 			counts[cat] += 1
 	print("[UpgradeSystem] 类别分布: ", counts)
 	print("[UpgradeSystem] 当前保底计数: ", pity_counter)
-	print("[UpgradeSystem] 当前等级权重: ", CardDatabase.get_rarity_weights(current_level))
+	print("[UpgradeSystem] 当前等级权重: ", _db().get_rarity_weights(current_level))

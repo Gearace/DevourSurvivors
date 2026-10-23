@@ -200,14 +200,18 @@ func end_wave() -> void:
 
 ## 牌组管理
 func add_card_to_deck(card_id: String) -> bool:
+	# v1.2: CardDatabase 未注册全局类名 — headless 直载时走 load() (M4c 测试用)
 	if player_deck.size() < deck_capacity:
 		player_deck.append(card_id)
 		print("[GameManager] 获得卡牌: ", card_id, " (", player_deck.size(), "/", deck_capacity, ")")
-		
+
 		# 应用被动效果
-		var card = CardDatabase.find_card_by_id(card_id)
+		var card: Dictionary
+		var db = load("res://scripts/card_database.gd")
+		card = db.find_card_by_id(card_id)
 		if not card.is_empty():
-			UpgradeSystem._apply_passive_effects(card)
+			var up = load("res://scripts/upgrade_system.gd")
+			up._apply_passive_effects(card)
 		
 		return true
 	else:
