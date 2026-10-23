@@ -42,30 +42,39 @@ const NODE_FACTOR: Dictionary = {
 
 # 层号系数台阶（GDD 7.4，前松后紧）
 const FLOOR_FACTOR: Dictionary = {
-	1: 1.0,  2: 1.0,  3: 1.0,  4: 1.0,
-	5: 1.15, 6: 1.15,
-	7: 1.30, 8: 1.30,
-	9: 1.50, 10: 1.50,
-	11: 1.75, 12: 1.75,
-	13: 2.0,
+	# v1.2 多大关 §3.1 节奏曲线: 张力峰(3/6/9/12) + 战斗强度递增(4/5/8/10/12)
+	1: 1.0,  2: 1.0,
+	3: 0.3,  # 营地 — 张力峰(非战斗, 低系数)
+	4: 1.15, # 三敌围猎+精英预演
+	5: 1.4,  # 精英(首次) — 战斗强度峰
+	6: 0.5,  # 事件(元素谜题) — 张力峰
+	7: 0.3,  # 营地
+	8: 0.5,  # 商店
+	9: 1.6,  # 精英(精英×2) — 战斗强度峰
+	10: 1.35, # 普通(高压层: 3×基础+1分裂)
+	11: 1.2,  # 事件(路线分支) — 张力峰
+	12: 1.8,  # 精英(高难度) — 战斗强度峰
+	13: 2.0,  # Boss
 }
 
-# ─── 13 层路线模板（GDD 7.2）────────────────────────────
+# ─── 13 层节奏曲线模板（v1.2 多大关 §3.1, 派生自 FC 关卡门 + 忍者龙剑传限时）───
+# 节奏点: 3/6/9/12 层为「张力峰」(非战斗节点), 战斗层 4/5/8/10/12 强度递增
 # 每层: { floor, fixed, type(固定层) 或 options(roll层) }
+# 节点类型: 0=普通波 1=精英 2=营地 3=商店 4=事件 5=Boss
 var _template: Array = [
-	{ "floor": 1,  "fixed": true,  "type": 0 },
-	{ "floor": 2,  "fixed": true,  "type": 0 },
-	{ "floor": 3,  "fixed": false, "options": [0, 1, 2] },
-	{ "floor": 4,  "fixed": true,  "type": 0 },
-	{ "floor": 5,  "fixed": false, "options": [0, 1, 3] },
-	{ "floor": 6,  "fixed": true,  "type": 0 },
-	{ "floor": 7,  "fixed": false, "options": [1, 4, 2] },
-	{ "floor": 8,  "fixed": true,  "type": 0 },
-	{ "floor": 9,  "fixed": false, "options": [1, 3, 4] },
-	{ "floor": 10, "fixed": false, "options": [1, 2, 0] },
-	{ "floor": 11, "fixed": false, "options": [1, 4, 2] },
-	{ "floor": 12, "fixed": false, "options": [1, 3, 2] },
-	{ "floor": 13, "fixed": true,  "type": 5 },
+	{ "floor": 1,  "fixed": true,  "type": 0 },  # 普通(教学) — 本大关风格首现
+	{ "floor": 2,  "fixed": true,  "type": 0 },  # 普通(双敌变体)
+	{ "floor": 3,  "fixed": false, "options": [2] },  # 营地(1选1) — 张力峰
+	{ "floor": 4,  "fixed": true,  "type": 0 },  # 普通(三敌围猎+精英预演)
+	{ "floor": 5,  "fixed": false, "options": [1] },  # 精英(首次) — 战斗强度峰
+	{ "floor": 6,  "fixed": false, "options": [4] },  # 事件(元素谜题) — 张力峰
+	{ "floor": 7,  "fixed": false, "options": [2] },  # 营地(1选1)
+	{ "floor": 8,  "fixed": false, "options": [3] },  # 商店(2遗物)
+	{ "floor": 9,  "fixed": false, "options": [1] },  # 精英(精英×2, 护卫×3) — 战斗强度峰
+	{ "floor": 10, "fixed": true,  "type": 0 },  # 普通(高压层: 3×基础+1分裂)
+	{ "floor": 11, "fixed": false, "options": [4] },  # 事件(路线分支) — 张力峰
+	{ "floor": 12, "fixed": false, "options": [1] },  # 精英(精英×2+护卫×3, 高难度) — 战斗强度峰
+	{ "floor": 13, "fixed": true,  "type": 5 },  # Boss(3阶段, 法宝遗物)
 ]
 
 # 章节级约束（作用于「候选可选项」总数）
@@ -131,27 +140,15 @@ func _shuffle(pool: Array) -> Array:
 
 ## 约束校验：精英/事件候选总数受限、商店至少 1 个、层2 不出精英
 func _satisfies_constraints(route: Array) -> bool:
-	var elite := 0
-	var event_ := 0
-	var shop := 0
+	# v1.2 多大关: 节奏曲线模板 (3.1) 已固定 精英/事件/营地/商店 在各层, 无需约束校验
+	# 保留兼容: 仅校验 Boss 在层 13, 且每层 options 非空
 	for rec in route:
-		for t in rec.options:
-			if t == 1:
-				elite += 1
-			elif t == 4:
-				event_ += 1
-			elif t == 3:
-				shop += 1
-		if rec.floor == 2:
+		if rec.options.is_empty():
+			return false
+		if rec.floor == 13:
 			for t in rec.options:
-				if t == 1:
+				if t != 5:
 					return false
-	if elite > MAX_ELITE_CANDIDATES:
-		return false
-	if event_ > MAX_EVENT_CANDIDATES:
-		return false
-	if shop < MIN_SHOP_CANDIDATES:
-		return false
 	return true
 
 ## 写入 GameManager.run_route（随 save/load 序列化）

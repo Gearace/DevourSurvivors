@@ -102,6 +102,42 @@ func _initialize() -> void:
 		push_error("腐沼风格 层 6 普通波应含 toxin_swarmer, 实际: ", pack1)
 	print("腐沼风格 层 6 注入 toxin_swarmer=", has_toxin)
 
+	# ── 3.1 单大关 13 层节奏曲线重排 ─────────────────────
+	# 验证: 模板按 v1.2 §3.1 节奏 (张力峰 3/6/9/12 + 战斗强度峰 4/5/8/10/12)
+	# 层 3 = 营地(2), 层 5 = 精英(1), 层 6 = 事件(4), 层 8 = 商店(3), 层 9 = 精英(1), 层 13 = Boss(5)
+	var tpl: Array = rg._template
+	if tpl.size() != 13:
+		all_pass = false
+		push_error("节奏模板应为 13 层, 实际 ", tpl.size())
+	var expected_types: Dictionary = {
+		1: 0,  # 普通(教学)
+		3: 2,  # 营地
+		4: 0,  # 普通(三敌围猎)
+		5: 1,  # 精英(首次)
+		6: 4,  # 事件(元素谜题)
+		7: 2,  # 营地
+		8: 3,  # 商店
+		9: 1,  # 精英
+		10: 0, # 普通(高压)
+		11: 4, # 事件(路线分支)
+		12: 1, # 精英(高难度)
+		13: 5, # Boss
+	}
+	for rec in tpl:
+		var f: int = int(rec.floor)
+		if not expected_types.has(f):
+			continue
+		var exp: int = int(expected_types[f])
+		var actual: int
+		if rec.fixed:
+			actual = int(rec.type)
+		else:
+			actual = int(rec.options[0])
+		if actual != exp:
+			all_pass = false
+			push_error("层 ", f, " 节奏节点应为 ", exp, ", 实际 ", actual)
+	print("节奏曲线 13 层验证通过 (张力峰 3/6/9/12 + 战斗峰 4/5/8/10/12)")
+
 	# ── 3.3 Boss 3 阶段 ──────────────────────────────────
 	var eb = load("res://scripts/enemy_base.gd")
 	var boss: Node2D = eb.new()
