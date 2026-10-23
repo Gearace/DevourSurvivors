@@ -295,6 +295,9 @@ func _execute_capture(enemy) -> void:
 	# 触发信号
 	player_captured_enemy.emit(enemy_type, capture_value)
 	
+	# v1.2 P1 警报机制 (合金装备 §3.5): 吞噬累加 streak (受伤才清零)
+	_notify_alarm_capture()
+	
 	# 升级后同步体型 (由 GameManager 阶梯式更新)
 	_sync_from_gm()
 	_update_body_visuals()
@@ -361,6 +364,9 @@ func take_damage(amount: int) -> void:
 	if _event_bus:
 		_event_bus.emit_signal("player_hit", amount)
 	
+	# v1.2 P1 警报机制: 受伤 → 警报清零 + streak 清零 (合金装备 §3.5)
+	_notify_alarm_damage()
+	
 	if hp <= 0:
 		hp = 0
 		print("[Player] 玩家阵亡!")
@@ -373,6 +379,17 @@ func _on_joystick_moved(dir: Vector2) -> void:
 
 func _on_joystick_released() -> void:
 	_current_direction = Vector2.ZERO
+
+## v1.2 P1 警报机制: 通知 RouteGenerator.alarm
+func _notify_alarm_capture() -> void:
+	var rg = get_node_or_null("/root/MainGame/RouteGenerator")
+	if rg and rg.alarm != null and rg.alarm.has_method("on_capture"):
+		rg.alarm.on_capture()
+
+func _notify_alarm_damage() -> void:
+	var rg = get_node_or_null("/root/MainGame/RouteGenerator")
+	if rg and rg.alarm != null and rg.alarm.has_method("on_damage"):
+		rg.alarm.on_damage()
 
 func connect_joystick(joystick_node) -> void:
 	joystick_node.moved.connect(_on_joystick_moved)

@@ -447,9 +447,37 @@ func start_new_chapter() -> void:
 	current_floor = 1
 	current_node_type = 0
 	run_route = []
+	# v1.2 P1 跨大关保留/重置规则 (杀戮尖塔 build 延续 + 艾尔登法环, §3.0)
+	# 保留: skill_space + inscribed_cards + relic_buffs + 路线选择历史
+	# 重置: HP/能量 回复至 70%, 材质池保留, 警报归零
+	_reset_chapter_state()
 	# 章节间敌人速度递增（GDD 7.5：章节2 +20% 等）
 	# 简化：记录章节，route_generator 可据此加难度
 	print("[GameManager] 进入第 ", chapter, " 章")
+
+## v1.2 P1 跨大关保留/重置 (§3.0)
+## 保留 build (技能空间+三类卡+遗物), 重置 HP/能量至 70%, 警报归零
+func _reset_chapter_state() -> void:
+	var max_hp: float = float(player_stats.get("max_hp", 100))
+	var max_energy: float = float(player_stats.get("max_energy", 10.0))
+	player_stats["current_hp"] = int(max_hp * 0.7)
+	player_stats["energy"] = min(max_energy, max_energy * 0.7)
+	# 材质池保留 (不清 held_materials)
+	# 警报归零 — 通知 RouteGenerator (若在场景树)
+	var rg = _find_route_generator()
+	if rg and rg.alarm != null and rg.alarm.has_method("reset"):
+		rg.alarm.reset()
+
+## 取 RouteGenerator (场景树查找, 失败返回 null)
+func _find_route_generator() -> Node:
+	# 简法: 走 /root/MainGame 绝对路径 (autoload 单例可走), 找不到返 null
+	# headless 直载无 MainGame 场景时安全返回 null, 不抛错
+	if not is_inside_tree():
+		return null
+	var main: Node = get_node_or_null("/root/MainGame")
+	if main == null:
+		return null
+	return main.get_node_or_null("RouteGenerator")
 ## 保存/加载
 func save_game() -> void:
 	var save_data = {

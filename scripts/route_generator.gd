@@ -87,11 +87,15 @@ const MIN_SHOP_CANDIDATES  := 1
 var _run_route: Array = []
 var _gm: Node
 var _runtime_difficulty: float = 1.0
+## v1.2 P1 警报机制 (合金装备 §3.5): 玩家行为触发难度
+var alarm: RefCounted
 
 func _ready() -> void:
 	_gm = get_node_or_null("/root/GameManager")
 	var _cs = load("res://scripts/chapter_style.gd")
 	set_meta("chapter_style", _cs)
+	# v1.2 P1 警报机制 (合金装备 §3.5): 玩家行为触发难度
+	alarm = load("res://scripts/alarm_system.gd").new()
 	print("[RouteGenerator] 初始化完成 — 模板 ", _template.size(), " 层")
 
 ## 生成新一局的 13 层路线（约束校验通过）
@@ -280,8 +284,21 @@ func _make_enemy_pack(floor: int, node_type: int) -> Array:
 		var pack := [{ "type": _roll_elite_id(), "count": 1 }]
 		for s in escorts:
 			pack.push_back(s)
-		return pack
+		# v1.2 P1 警报: 精英层也受警报放大 (护卫视野被压缩)
+		return _apply_alarm_scale(_apply_chapter_count_scale(pack))
 	return _apply_chapter_count_scale(base)
+
+## v1.2 P1 警报机制: 按当前警报等级放大下一层敌人数 (§3.5: ×1.2/×1.4)
+func _apply_alarm_scale(entries: Array) -> Array:
+	if alarm == null:
+		return entries
+	var scale: float = alarm.get_next_layer_scale()
+	if scale <= 1.0:
+		return entries
+	for e in entries:
+		if int(e.count) > 0:
+			e.count = maxi(1, int(e.count * scale + 0.5))
+	return entries
 
 func _apply_chapter_count_scale(entries: Array) -> Array:
 	var ch: int = _get_chapter()
@@ -369,6 +386,31 @@ func _roll_shop_stock() -> Array:
 func _roll_event_id() -> String:
 	var ids := ["hungry_egg", "ruin", "mystery_merchant", "energy_vortex", "cursed_orb", "time_rift"]
 	return ids[randi() % ids.size()]
+
+## v1.2 P1 层 11 路线分支 (杀戮尖塔 §3.2): 2 条路线, 选「安全线」或「风险线」
+## 安全线: 后续层 12 降为 普通波(低难度), 遗物 ×1
+## 风险线: 后续层 12 保持 精英(高难度), 遗物 ×2 (超额回报)
+## 返回: { branch: "safe"|"risky", next_floor_type: int, relic_multiplier: int }
+func roll_route_branch() -> Dictionary:
+	var is_risky: bool = randf() < 0.5
+	if is_risky:
+		return { "branch": "risky", "next_floor_type": 1, "relic_multiplier": 2, "label": "风险线 · 精英 ×2 遗物" }
+	return { "branch": "safe", "next_floor_type": 0, "relic_multiplier": 1, "label": "安全线 · 普通波 + 营地" }
+
+## 应用路线分支到层 12 (玩家选了安全线 → 层 12 降为普通波; 风险线 → 保持精英)
+func apply_route_branch(branch: Dictionary) -> void:
+	if _run_route.is_empty():
+		return
+	for rec in _run_route:
+		if rec.floor == 12:
+			var new_type: int = int(branch.get("next_floor_type", 0))
+			rec.options = [new_type]
+			# 风险线遗物 ×2 → 标记本层 elite 掉落遗物数 ×2 (wave_spawner 读)
+			if int(branch.get("relic_multiplier", 1)) > 1:
+				set_meta("relic_multiplier", 2)
+			_store_to_gm()
+			print("[RouteGenerator] 路线分支应用: ", branch.get("label", ""), " → 层 12 变 ", node_name(new_type))
+			return
 
 ## 当前层难度系数（floor × node，供 wave_spawner / 敌人缩放）
 func get_difficulty(floor: int, node_type: int) -> float:

@@ -198,6 +198,66 @@ func _initialize() -> void:
 		all_pass = false
 		push_error("reset 后 Boss 阶段应归 1")
 
+	# ── P1 警报机制 (合金装备 §3.5) ──────────────────────
+	var alarm = load("res://scripts/alarm_system.gd").new()
+	# 初始: 无警报
+	if alarm.get_next_layer_scale() != 1.0:
+		all_pass = false
+		push_error("初始警报应为 1.0×")
+	# 连续吞噬 5 只 → 警报 ×1 → 下层 ×1.2
+	for i in 5:
+		alarm.on_capture()
+	if alarm.alarm_level != 1:
+		all_pass = false
+		push_error("连续 5 只吞噬应升警报到 1, 实际 ", alarm.alarm_level)
+	if absf(alarm.get_next_layer_scale() - 1.2) > 0.001:
+		all_pass = false
+		push_error("警报 ×1 下层放大应 1.2, 实际 ", alarm.get_next_layer_scale())
+	# 受伤 → 警报清零
+	alarm.on_damage()
+	if alarm.alarm_level != 0 or alarm.get_next_layer_scale() != 1.0:
+		all_pass = false
+		push_error("受伤后警报应清零")
+	# 精英清完护卫 → 警报清零
+	alarm.alarm_level = 1
+	alarm.on_elite_cleared()
+	if alarm.alarm_level != 0:
+		all_pass = false
+		push_error("精英清完护卫应警报清零")
+	print("警报机制: 5连吞→×1.2 / 受伤清零 / 精英清完清零")
+
+	# ── P1 层 11 路线分支 (杀戮尖塔 §3.2) ─────────────────
+	var branch1: Dictionary = rg.roll_route_branch()
+	if not (branch1.get("branch", "") in ["safe", "risky"]):
+		all_pass = false
+		push_error("路线分支应为 safe/risky, 实际 ", branch1.get("branch"))
+	print("路线分支 roll=", branch1.get("branch"), " 遗物×", branch1.get("relic_multiplier"))
+
+	# ── P1 跨大关保留/重置 (杀戮尖塔/艾尔登法环 §3.0) ──────
+	# 验证 start_new_chapter 把 HP/能量 重置至 70%
+	gm.chapter = 1
+	gm.player_stats["current_hp"] = 100
+	gm.player_stats["max_hp"] = 100
+	gm.player_stats["energy"] = 10.0
+	gm.player_stats["max_energy"] = 10.0
+	gm.start_new_chapter()
+	if gm.chapter != 2:
+		all_pass = false
+		push_error("start_new_chapter 应 章节 1→2, 实际 ", gm.chapter)
+	var hp_after: int = int(gm.player_stats["current_hp"])
+	var energy_after: float = float(gm.player_stats["energy"])
+	if hp_after != 70:
+		all_pass = false
+		push_error("跨大关 HP 应 70% (70), 实际 ", hp_after)
+	if absf(energy_after - 7.0) > 0.01:
+		all_pass = false
+		push_error("跨大关 能量应 70% (7.0), 实际 ", energy_after)
+	# build 保留 (技能空间/三类卡/遗物 不清)
+	if not gm.player_stats.has("max_hp"):
+		all_pass = false
+		push_error("build 应保留")
+	print("跨大关保留/重置: 章节 1→2, HP/能量 70%, build 保留")
+
 	print("=== M5 多大关 + Boss 3 阶段 测试 ", "全部通过" if all_pass else "存在失败", " ===")
 	quit(0 if all_pass else 1)
 

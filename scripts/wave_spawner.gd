@@ -457,6 +457,9 @@ func _check_wave_complete() -> void:
 	print("[WaveSpawner] 层 " + str(_current_wave) + " 清层!")
 	if _gm.has_method("tick_inscribed_cards"):
 		_gm.tick_inscribed_cards()
+	# v1.2 P1 警报机制: 精英层清完护卫 → 警报清零 (奖励干净清场, §3.5)
+	if _gm.current_node_type == 1:
+		_notify_alarm_elite_cleared()
 	_grant_evolution_card_choice()
 
 ## 启动下一波（命名闭包替代 func: lambda）
@@ -501,6 +504,12 @@ func _grant_elite_reward_if_any() -> void:
 			var pick = leg_pool[randi() % leg_pool.size()]
 			_gm.add_card_to_deck(pick.get("id", ""))
 			print("[WaveSpawner] 精英掉落传说卡: ", pick.get("name", "?"))
+
+## v1.2 P1 警报机制: 精英层清完护卫 → 通知 RouteGenerator.alarm 清零 (§3.5)
+func _notify_alarm_elite_cleared() -> void:
+	var rg = get_node_or_null("../RouteGenerator")
+	if rg and rg.alarm != null and rg.alarm.has_method("on_elite_cleared"):
+		rg.alarm.on_elite_cleared()
 
 ## v1.1: 进化卡 4 选 1 — 所有层通关后弹出
 ## 从 55 张进化卡池 (11 技能 × 5 材质) 随机抽 4 张, 玩家选 1 张进技能栏
