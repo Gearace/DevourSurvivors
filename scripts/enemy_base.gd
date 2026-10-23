@@ -1,4 +1,4 @@
-﻿extends Area2D
+extends Area2D
 ## EnemyBase — 敌人基类
 ## 所有敌人类型的父节点，提供公共属性和方法
 
@@ -36,6 +36,19 @@ const FORTRESS_GNAW_SLOW := 2.0
 const TEARER_COOLDOWN := 4.0
 const POISON_RANGE := 60.0
 var _elite_timer: float = 0.0
+
+# ─── v1.2 多大关 Boss 3 阶段 (只狼阶段化 + 黑神话忍杀, §3.3) ───
+# 满血: 固定技能×1 → 50%: 弱点暴露+技能×2 → 20%: 狂暴(速度+50%,技能×3)+忍杀窗口
+var boss_phase: int = 1            # 1=满血 2=50% 3=20%狂暴
+var boss_weakness_open: bool = false  # 50% 后弱点暴露 (啃食 +50%)
+var boss_enraged: bool = false    # 20% 狂暴
+var boss_kill_window: float = 0.0 # 忍杀窗口剩余秒数 (窗口内啃食 3 倍速)
+const BOSS_KILL_WINDOW_SEC := 3.0
+const BOSS_KILL_GNAW_MULT := 3.0
+const BOSS_WEAKNESS_GNAW_MULT := 1.5
+const BOSS_ENRAGE_SPEED_MULT := 1.5
+var _boss_skill_timer: float = 0.0
+var _boss_skill_cd: float = 4.0   # 技能 CD (随阶段缩短)
 
 var textures: Dictionary = {
 	"basic": preload("res://assets/sprites/enemies/enemy_basic.png"),
@@ -77,6 +90,8 @@ func _physics_process(delta: float) -> void:
 	global_position.y = clamp(global_position.y, body_radius, 1280.0 - body_radius)
 	# 精英专属行为 (GDD 5.8)
 	_process_elite(delta)
+	# v1.2 多大关 Boss 3 阶段 (只狼阶段化, §3.3)
+	_process_boss(delta)
 
 
 ## 重置敌人到可用状态 (对象池用)
@@ -94,6 +109,9 @@ func reset(pos: Vector2, type_data: Dictionary = {}) -> void:
 		_apply_elite_default()
 	if enemy_type == "elite_fortress":
 		set_meta("gnaw_slow", FORTRESS_GNAW_SLOW)
+	# v1.2 多大关 Boss 阶段重置 (对象池复用)
+	if _is_boss_type():
+		_reset_boss_state()
 	is_fleeing = false
 	if not type_data.is_empty():
 		if type_data.has("enemy_type"):
@@ -310,6 +328,91 @@ func _apply_elite_default() -> void:
 			color = Color(0.7, 0.55, 0.3)
 
 ## 掉落（GDD 7.3：精英必掉 遗物60% / 传说40%）
+## ─── v1.2 多大关 Boss 3 阶段 (只狼阶段化 + 黑神话忍杀, §3.3) ───
+## 满血: 固定技能×1 → 50%: 弱点暴露(啃食×1.5) → 20%: 狂暴(速度+50%,技能×3)+忍杀窗口(啃食×3)
+## 判定: 通过 current_hp / max_hp 阈值, 写入 meta "gnaw_mult" 供 player_controller 读
+func _process_boss(delta: float) -> void:
+	if not active:
+		return
+	# 只对 Boss 生效 (类型名以 boss_ 开头 或 基础 boss)
+	if not _is_boss_type():
+		return
+	var hp_ratio: float = float(current_hp) / float(max(1, max_hp))
+	# 阶段判定 (20% 阈值后狂暴)
+	if hp_ratio > 0.5:
+		if boss_phase != 1:
+			_enter_boss_phase(1)
+	elif hp_ratio > 0.2:
+		if boss_phase != 2:
+			_enter_boss_phase(2)
+	else:
+		if boss_phase != 3:
+			_enter_boss_phase(3)
+	# 忍杀窗口倒计时
+	if boss_kill_window > 0.0:
+		boss_kill_window -= delta
+	# 技能 CD (随阶段缩短, §3.3 技能×2/×3)
+	_boss_skill_timer += delta
+	var cd_target: float = _boss_skill_cd / _boss_skill_mult()
+	if _boss_skill_timer >= cd_target:
+		_boss_skill_timer = 0.0
+		_boss_skill_cast()
+	# 写入啃食倍率 meta (player_controller 每帧读, 弱点暴露 1.5× / 忍杀窗口 3×)
+	var mult: float = 1.0
+	if boss_weakness_open:
+		mult = BOSS_WEAKNESS_GNAW_MULT
+	if boss_kill_window > 0.0:
+		mult = BOSS_KILL_GNAW_MULT
+	set_meta("gnaw_mult", mult)
+
+## 是否 Boss 类型 (v1.2 多大关 boss_swamp/gold/void/abyss + 基础 boss)
+func _is_boss_type() -> bool:
+	return enemy_type == "boss" or enemy_type.begins_with("boss_")
+
+## 进入 Boss 阶段 (2=弱点暴露, 3=狂暴+开忍杀窗口)
+func _enter_boss_phase(phase: int) -> void:
+	boss_phase = phase
+	if phase == 2:
+		boss_weakness_open = true
+		print("[Boss] 弱点暴露 — 啃食 ×", BOSS_WEAKNESS_GNAW_MULT)
+	elif phase == 3:
+		boss_enraged = true
+		boss_kill_window = BOSS_KILL_WINDOW_SEC
+		# 狂暴: 速度 +50%
+		speed *= BOSS_ENRAGE_SPEED_MULT
+		print("[Boss] 狂暴 — 速度+50%, 技能×3, 忍杀窗口 ", BOSS_KILL_WINDOW_SEC, "s")
+
+## Boss 技能倍率 (1=×1, 2=×2, 3=×3)
+func _boss_skill_mult() -> float:
+	match boss_phase:
+		1: return 1.0
+		2: return 2.0
+		3: return 3.0
+		_: return 1.0
+
+## Boss 技能释放 (简化: 向玩家发撕裂波, 阶段越高伤害越高)
+func _boss_skill_cast() -> void:
+	if player_ref == null or not is_instance_valid(player_ref):
+		return
+	var dist := global_position.distance_to(player_ref.global_position)
+	if dist <= 300.0:
+		var dmg: int = int(SPLIT_WAVE_DMG * _boss_skill_mult())
+		if player_ref.has_method("take_damage"):
+			player_ref.take_damage(dmg)
+		var bus = get_node_or_null("/root/MainGame/EventBus")
+		if bus and bus.has_signal("screen_shake"):
+			bus.emit_signal("screen_shake", 0.2, 6.0)
+
+## 重置 Boss 阶段 (对象池复用时)
+func _reset_boss_state() -> void:
+	boss_phase = 1
+	boss_weakness_open = false
+	boss_enraged = false
+	boss_kill_window = 0.0
+	_boss_skill_timer = 0.0
+	_boss_skill_cd = 4.0
+	set_meta("gnaw_mult", 1.0)
+
 func roll_elite_reward() -> Dictionary:
 	if randf() < 0.6:
 		return {"type": "relic"}

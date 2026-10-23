@@ -34,6 +34,7 @@ var _poison_dps: float = 0.0
 var _poison_timer: float = 0.0
 var _poison_acc: float = 0.0
 var _gnaw_steadiness_now: float = 1.0  # 当前啃食减速倍率 (堡垒=2.0)
+var _gnaw_mult_now: float = 1.0        # v1.2 多大关 Boss 啃食加速倍率 (弱点1.5×/忍杀3×, §3.3)
 var _gnaw_required: float = 1.0             # 该敌人需要啃多久
 
 # ─── 内部状态 ─────────────────────────────────────────
@@ -160,8 +161,8 @@ func _update_gnaw(delta: float) -> void:
 			_reset_gnaw()
 			print("[Player] 能量耗尽，啃食中断")
 	
-	# 进度推进（堡垒啃食减速：_gnaw_steadiness_now 越大越慢）
-	_gnaw_progress += _gnaw_steadiness * delta / maxf(_gnaw_steadiness_now, 1.0)
+	# 进度推进（堡垒啃食减速：_gnaw_steadiness_now 越大越慢; Boss 啃食加速：_gnaw_mult_now 越大越快, §3.3）
+	_gnaw_progress += _gnaw_steadiness * delta * _gnaw_mult_now / maxf(_gnaw_steadiness_now, 1.0)
 
 	_gnaw_target.set_meta("gnaw_progress", _gnaw_progress / maxf(_gnaw_required, 0.1))
 	
@@ -187,6 +188,12 @@ func _start_gnaw(enemy: Node2D) -> void:
 	if enemy.has_meta("gnaw_slow"):
 		gnaw_slow = enemy.get_meta("gnaw_slow")
 	_gnaw_steadiness_now = gnaw_slow
+	# v1.2 多大关 Boss 阶段 (只狼阶段化 §3.3)：读 meta gnaw_mult 加快啃食 (弱点1.5×/忍杀3×)
+	# gnaw_mult 越大越快 — 与 gnaw_slow 相反, 除以 steady 后还需再乘 mult
+	var gnaw_mult: float = 1.0
+	if enemy.has_meta("gnaw_mult"):
+		gnaw_mult = enemy.get_meta("gnaw_mult")
+	_gnaw_mult_now = gnaw_mult
 
 
 func _finish_gnaw() -> void:

@@ -160,8 +160,8 @@ func _populate_stats(cleared_chapter: bool) -> void:
 		var deck = _gm.player_deck
 		if deck.size() > 0:
 			var keep = deck[deck.size() - 1]
-		# M4c: headless 直载时 CardDatabase 无全局类名 — 走 load()
-		var card = load("res://scripts/card_database.gd").find_card_by_id(keep)
+			# M4c: headless 直载时 CardDatabase 无全局类名 — 走 load()
+			var card = load("res://scripts/card_database.gd").find_card_by_id(keep)
 			ring_txt = "永恒之环 · 保留 [ %s ] 进入下一局" % card.get("name", keep)
 		else:
 			ring_txt = "永恒之环 · 保留 1 张卡进入下一局"

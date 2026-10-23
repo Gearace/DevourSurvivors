@@ -68,6 +68,81 @@ var _enemy_configs: Dictionary = {
 		"flee_speed_mult": 1.2,
 		"wander_speed_mult": 0.2,
 	},
+	# ─── v1.2 多大关: 大关风格新增怪 (chapter_style.gd §3.0) ───
+	# 腐沼风格 (慢速/群体/分裂) — 毒囊之核 专属怪
+	"toxin_swarmer": {
+		"hp": 2,
+		"speed": 55.0,
+		"body_radius": 16.0,
+		"color": Color(0.4, 0.85, 0.3),  # 毒绿
+		"capture_value": 1.2,
+		"flee_radius": 180.0,
+		"flee_speed_mult": 1.0,
+		"wander_speed_mult": 0.3,
+	},
+	# 熔金矿洞风格 (快速/切割/金元素) — 金甲残片 专属怪
+	"phase_cutter": {
+		"hp": 1,
+		"speed": 160.0,
+		"body_radius": 12.0,
+		"color": Color(0.95, 0.7, 0.2),  # 金
+		"capture_value": 0.8,
+		"flee_radius": 260.0,
+		"flee_speed_mult": 1.6,
+		"wander_speed_mult": 0.2,
+	},
+	# 虚空回廊风格 (镜像/分身/佯攻) — 虚空碎片 专属怪
+	"decoy_wraith": {
+		"hp": 1,
+		"speed": 70.0,
+		"body_radius": 22.0,
+		"color": Color(0.5, 0.5, 0.95),  # 虚空蓝
+		"capture_value": 0.5,
+		"flee_radius": 300.0,
+		"flee_speed_mult": 2.0,
+		"wander_speed_mult": 0.15,
+	},
+	# ─── v1.2 多大关: 专属 Boss (黑神话法宝, 每大关不同) ───
+	"boss_swamp": {
+		"hp": 25,
+		"speed": 38.0,
+		"body_radius": 60.0,
+		"color": Color(0.3, 0.8, 0.3),  # 腐绿
+		"capture_value": 10.0,
+		"flee_radius": 400.0,
+		"flee_speed_mult": 1.2,
+		"wander_speed_mult": 0.2,
+	},
+	"boss_gold_beast": {
+		"hp": 30,
+		"speed": 55.0,
+		"body_radius": 65.0,
+		"color": Color(1.0, 0.8, 0.0),  # 金甲
+		"capture_value": 10.0,
+		"flee_radius": 400.0,
+		"flee_speed_mult": 1.3,
+		"wander_speed_mult": 0.25,
+	},
+	"boss_void_devourer": {
+		"hp": 35,
+		"speed": 45.0,
+		"body_radius": 70.0,
+		"color": Color(0.6, 0.6, 1.0),  # 虚空
+		"capture_value": 10.0,
+		"flee_radius": 420.0,
+		"flee_speed_mult": 1.4,
+		"wander_speed_mult": 0.3,
+	},
+	"boss_abyss_echo": {
+		"hp": 45,
+		"speed": 50.0,
+		"body_radius": 80.0,
+		"color": Color(0.8, 0.3, 0.9),  # 深渊紫
+		"capture_value": 15.0,
+		"flee_radius": 450.0,
+		"flee_speed_mult": 1.5,
+		"wander_speed_mult": 0.35,
+	},
 }
 
 # ─── 波次配置 ─────────────────────────────────────────
@@ -242,9 +317,11 @@ func _apply_node_overrides(config: Dictionary, pack: Dictionary, type_id: String
 		"elite_toxin":    config["body_radius"] = 38.0; config["hp"] = 4
 		"elite_mirror":   config["body_radius"] = 30.0; config["hp"] = 3
 		"elite_fortress": config["body_radius"] = 50.0; config["hp"] = 10
-		"boss_ch1":       config["body_radius"] = 60.0; config["hp"] = 25
-		"boss_v2_void":   config["body_radius"] = 65.0; config["hp"] = 30
-		"boss_v3_abyss":  config["body_radius"] = 70.0; config["hp"] = 40
+		"boss_swamp":       config["body_radius"] = 60.0; config["hp"] = 25
+		"boss_gold_beast":   config["body_radius"] = 65.0; config["hp"] = 30
+		"boss_void_devourer":  config["body_radius"] = 70.0; config["hp"] = 40
+		# v1.2 多大关: 无尽深渊 Boss (大关 4+)
+		"boss_abyss_echo":  config["body_radius"] = 80.0; config["hp"] = 45
 	# 章节属性放大（GDD 7.5）
 	if rg and rg.has_method("get_chapter_stat_scale"):
 		var cscale: float = rg.get_chapter_stat_scale()

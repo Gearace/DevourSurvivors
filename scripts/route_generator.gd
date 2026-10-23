@@ -2,6 +2,8 @@ extends Node
 ## RouteGenerator — 路线生成器 (GDD 7.2 / 5.7)
 ## 负责：每局 roll 出 13 层完整路线 + 各层候选卡片，
 ## 带模板约束（精英≤2、商店≥1、事件≤2），结果写入 GameManager.run_route。
+## v1.2 多大关: 按大关风格 (chapter_style.gd) roll 节点 — 每大关独立怪物风格 + Boss + 专属遗物
+## (docs/关卡设计_灵感归纳_v1.md §3.0, 派生自 杀戮尖塔/黑神话/原神)
 ##
 ## 设计原则：
 ##   · 纯数据层，不依赖 UI / 场景；输出可直接交给 wave_spawner / route_ui
@@ -79,6 +81,8 @@ var _runtime_difficulty: float = 1.0
 
 func _ready() -> void:
 	_gm = get_node_or_null("/root/GameManager")
+	var _cs = load("res://scripts/chapter_style.gd")
+	set_meta("chapter_style", _cs)
 	print("[RouteGenerator] 初始化完成 — 模板 ", _template.size(), " 层")
 
 ## 生成新一局的 13 层路线（约束校验通过）
@@ -205,19 +209,18 @@ func _get_chapter() -> int:
 
 ## 章节敌人数量放大：1 章不变，2 章 ×1.15，3 章 ×1.3，4+ 每章再 ×1.1
 func _chapter_count_scale(chapter: int) -> float:
-	match chapter:
-		1: return 1.0
-		2: return 1.15
-		3: return 1.30
-		_: return 1.15 * pow(1.1, maxi(0, chapter - 2))
-
-## 章节敌人属性放大（含 GDD：速度 +20%/章、4+ 全属性 ×1.25）
+	# v1.2 多大关: 统一走 chapter_style 表 (敌人数 ×1.1/大关)
+	var cs: Variant = load("res://scripts/chapter_style.gd")
+	return cs.chapter_count_scale(chapter)
 func _chapter_stat_scale(chapter: int) -> float:
-	match chapter:
-		1: return 1.0
-		2: return 1.2
-		3: return 1.4
-		_: return 1.4 * pow(1.25, maxi(0, chapter - 3))
+	# v1.2 多大关: 统一走 chapter_style 表 (难度 ×1.25/大关)
+	var cs: Variant = null
+	if has_meta("chapter_style"):
+		cs = get_meta("chapter_style")
+	if cs == null:
+		cs = load("res://scripts/chapter_style.gd")
+		set_meta("chapter_style", cs)
+	return cs.chapter_stat_scale(chapter)
 
 ## 运行中当前章节难度（供 UI/外部读取）
 func get_runtime_difficulty() -> float:
@@ -225,11 +228,43 @@ func get_runtime_difficulty() -> float:
 
 ## 章节 Boss：每章换形态 + 数值随章节放大
 func _roll_boss_id(chapter: int) -> String:
-	match chapter:
-		1: return "boss_ch1"
-		2: return "boss_v2_void"
-		3: return "boss_v3_abyss"
-		_: return "boss_ch%d" % chapter
+	# v1.2 多大关: 按大关风格表取 Boss (杀戮尖塔式每关不同 Boss)
+	var cs: Variant = null
+	if has_meta("chapter_style"):
+		cs = get_meta("chapter_style")
+	if cs == null:
+		cs = load("res://scripts/chapter_style.gd")
+		set_meta("chapter_style", cs)
+	var style: Dictionary = cs.get_style(chapter)
+	return style.get("boss_id", "boss_ch%d" % chapter)
+
+## 取当前大关风格 (供 wave_spawner / 环境 / UI 读取)
+func get_current_style() -> Dictionary:
+	var cs: Variant = null
+	if has_meta("chapter_style"):
+		cs = get_meta("chapter_style")
+	if cs == null:
+		cs = load("res://scripts/chapter_style.gd")
+		set_meta("chapter_style", cs)
+	return cs.get_style(_get_chapter())
+
+## 取指定大关风格 (测试用, 不依赖 gm.chapter)
+func get_current_style_from_chapter(chapter: int) -> Dictionary:
+	var cs: Variant = null
+	if has_meta("chapter_style"):
+		cs = get_meta("chapter_style")
+	if cs == null:
+		cs = load("res://scripts/chapter_style.gd")
+		set_meta("chapter_style", cs)
+	return cs.get_style(chapter)
+
+## 大关中文名 (供 HUD 显示)
+func get_style_name() -> String:
+	return get_current_style().get("name", "")
+
+## 大关专属遗物 (Boss 通关必掉, 黑神话法宝)
+func get_style_relic_id() -> String:
+	return get_current_style().get("relic_id", "")
 
 ## 普通波 / 精英护卫 的敌人编队包（GDD 7.3）
 func _make_enemy_pack(floor: int, node_type: int) -> Array:
@@ -263,14 +298,24 @@ func _apply_chapter_count_scale(entries: Array) -> Array:
 
 ## 普通波按层号编队（GDD 7.3 普通波表）
 func _normal_pack_for_floor(floor: int) -> Array:
+	var pack: Array
 	match floor:
-		1:  return [{ "type": "basic", "count": 5 }]
-		2:  return [{ "type": "basic", "count": 8 }, { "type": "swift", "count": 2 }]
-		4:  return [{ "type": "basic", "count": 10 }, { "type": "swift", "count": 3 }, { "type": "heavy", "count": 1 }]
-		6:  return [{ "type": "basic", "count": 12 }, { "type": "swift", "count": 4 }, { "type": "heavy", "count": 2 }, { "type": "split", "count": 1 }]
-		8:  return [{ "type": "basic", "count": 14 }, { "type": "swift", "count": 5 }, { "type": "heavy", "count": 3 }, { "type": "split", "count": 2 }]
-		10: return [{ "type": "basic", "count": 15 }, { "type": "swift", "count": 6 }, { "type": "heavy", "count": 3 }, { "type": "split", "count": 2 }, { "type": "decoy", "count": 1 }]
-		_:  return _interp_pack(floor)
+		1:  pack = [{ "type": "basic", "count": 5 }]
+		2:  pack = [{ "type": "basic", "count": 8 }, { "type": "swift", "count": 2 }]
+		4:  pack = [{ "type": "basic", "count": 10 }, { "type": "swift", "count": 3 }, { "type": "heavy", "count": 1 }]
+		6:  pack = [{ "type": "basic", "count": 12 }, { "type": "swift", "count": 4 }, { "type": "heavy", "count": 2 }, { "type": "split", "count": 1 }]
+		8:  pack = [{ "type": "basic", "count": 14 }, { "type": "swift", "count": 5 }, { "type": "heavy", "count": 3 }, { "type": "split", "count": 2 }]
+		10: pack = [{ "type": "basic", "count": 15 }, { "type": "swift", "count": 6 }, { "type": "heavy", "count": 3 }, { "type": "split", "count": 2 }, { "type": "decoy", "count": 1 }]
+		_:  pack = _interp_pack(floor)
+	# v1.2 多大关: 注入本大关风格的新增怪 (杀戮尖塔式 每关不同怪物)
+	# 层 2 起刷本风格 extra_enemies, 层 4 起额外 +1 只
+	var style: Dictionary = get_current_style()
+	var extra: Array = style.get("extra_enemies", [])
+	if not extra.is_empty() and floor >= 2:
+		var type_id: String = str(extra[0])
+		var inject_count: int = 1 if floor < 4 else 2
+		pack.push_back({ "type": type_id, "count": inject_count })
+	return pack
 
 ## 未列出的层（3/5/7/9/11/12 roll 成普通波时）按相邻插值
 func _interp_pack(floor: int) -> Array:

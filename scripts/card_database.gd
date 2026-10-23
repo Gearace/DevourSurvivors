@@ -206,6 +206,15 @@ static func get_relic_props() -> Array[Dictionary]:
 		{"id": "prop_energy_fever", "name": "能量狂澜", "rarity": "史诗", "description": "能量回速+50%", "buff": {"energy_regen_bonus": 0.5}},
 		{"id": "prop_earth_shield", "name": "土盾", "rarity": "传说", "description": "所有材质抗性+20%", "buff": {"material_resist_bonus": 0.2}},
 		{"id": "prop_void_eye", "name": "虚空之眼", "rarity": "神器", "description": "技能无冷却（仅耗能）", "buff": {"skill_no_cooldown": true}},
+	# ─── v1.2 多大关: 大关专属遗物 (黑神话法宝, 每大关 Boss 通关必掉) ───
+	# 大关 1 腐沼
+	{"id": "relic_swamp_core", "name": "毒囊之核", "rarity": "传说", "chapter": 1, "description": "吞噬分裂体不掉 20% (群体/分裂流专属)", "buff": {"split_keep_bonus": 0.2}},
+	# 大关 2 熔金矿洞
+	{"id": "relic_gold_shard", "name": "金甲残片", "rarity": "传说", "chapter": 2, "description": "金系技能威力 +20% (切割/金元素流专属)", "buff": {"element_power": {"金": 1.2, "雷": 1.2}}},
+	# 大招 3 虚空回廊
+	{"id": "relic_void_fragment", "name": "虚空碎片", "rarity": "传说", "chapter": 3, "description": "开局获得 1 张镜像类技能 (分身/佯攻流专属)", "buff": {"start_mirror_skill": true}},
+	# 大关 4+ 无尽深渊
+	{"id": "relic_abyss_echo", "name": "深渊回响", "rarity": "神器", "chapter": 4, "description": "随机 1 个 大关专属遗物效果 (无尽循环奖励)", "buff": {"abyss_echo": true}},
 	]
 
 ## 按稀有度获取遗物道具 (用于 3 选 1 roll)
