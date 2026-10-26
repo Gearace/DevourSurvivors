@@ -56,7 +56,15 @@ var textures: Dictionary = {
 	"heavy": preload("res://assets/sprites/enemies/enemy_heavy.png"),
 	"split": preload("res://assets/sprites/enemies/enemy_split.png"),
 	"decoy": preload("res://assets/sprites/enemies/enemy_decoy.png"),
-	"boss": preload("res://assets/sprites/enemies/enemy_boss.png")
+	"boss": preload("res://assets/sprites/enemies/enemy_boss.png"),
+	// v1.2 多大关: 精英 4 变体 (GDD 7.3) + 章节 Boss 3 形态 (GDD 7.5)
+	"elite_tearer":   preload("res://assets/sprites/enemies/enemy_elite_tearer.png"),
+	"elite_toxin":    preload("res://assets/sprites/enemies/enemy_elite_toxin.png"),
+	"elite_mirror":   preload("res://assets/sprites/enemies/enemy_elite_mirror.png"),
+	"elite_fortress": preload("res://assets/sprites/enemies/enemy_elite_fortress.png"),
+	"boss_ch1":       preload("res://assets/sprites/enemies/enemy_boss_ch1.png"),
+	"boss_v2_void":   preload("res://assets/sprites/enemies/enemy_boss_v2_void.png"),
+	"boss_v3_abyss":  preload("res://assets/sprites/enemies/enemy_boss_v3_abyss.png")
 }
 
 # ─── 信号 ─────────────────────────────────────────
@@ -67,7 +75,6 @@ func _ready() -> void:
 	collision_layer = 2
 	collision_mask = 0
 
-
 	add_to_group("enemies")
 	set_meta("enemy_type", enemy_type)
 	set_meta("body_radius", body_radius)
@@ -77,22 +84,17 @@ func _ready() -> void:
 	_update_visuals()
 
 func _physics_process(delta: float) -> void:
-	# 刷新啃食进度环
 	_update_gnaw_ring()
-	# 恐惧抖动效果
-	if _fear_shake > 0:
+	if _fear_shake > 0.0:
 		_fear_shake -= delta
-		position += Vector2(randf() - 0.5, randf() - 0.5) * _fear_shake * 5.0
-	# 更新位置
+		if _fear_shake <= 0.0: _fear_shake = 0.0
+		var shake = 5.0 * min(_fear_shake, 1.0)
+		position += Vector2(randf() - 0.5, randf() - 0.5) * shake
 	global_position += _velocity * delta
-	# 边界限制 (固定 720x1280 场地)
 	global_position.x = clamp(global_position.x, body_radius, 720.0 - body_radius)
 	global_position.y = clamp(global_position.y, body_radius, 1280.0 - body_radius)
-	# 精英专属行为 (GDD 5.8)
 	_process_elite(delta)
-	# v1.2 多大关 Boss 3 阶段 (只狼阶段化, §3.3)
 	_process_boss(delta)
-
 
 ## 重置敌人到可用状态 (对象池用)
 func reset(pos: Vector2, type_data: Dictionary = {}) -> void:
@@ -103,13 +105,11 @@ func reset(pos: Vector2, type_data: Dictionary = {}) -> void:
 	_wander_angle = randf() * TAU
 	_wander_timer = 0.0
 	_fear_shake = 0.0
-	# 精英机制重置 (GDD 5.8)
 	_elite_timer = 0.0
 	if enemy_type in ["elite_tearer", "elite_toxin", "elite_mirror", "elite_fortress"]:
 		_apply_elite_default()
 	if enemy_type == "elite_fortress":
 		set_meta("gnaw_slow", FORTRESS_GNAW_SLOW)
-	# v1.2 多大关 Boss 阶段重置 (对象池复用)
 	if _is_boss_type():
 		_reset_boss_state()
 	is_fleeing = false
@@ -123,7 +123,6 @@ func reset(pos: Vector2, type_data: Dictionary = {}) -> void:
 			set_meta("body_radius", body_radius)
 		if type_data.has("color"): color = type_data["color"]
 		_update_visuals()
-
 
 ## 敌人死亡
 func die() -> void:
@@ -197,10 +196,6 @@ func get_flee_direction() -> Vector2:
 	var dir := global_position - player_ref.global_position
 	return dir.normalized()
 
-## ─── 啃食进度环 (GDD 3.2.2) ───────────────────────────────
-## 由 PlayerController 每帧写入 meta "gnaw_progress" (0.0~1.0)
-## 敌人基类根据该 meta 刷新进度环
-
 func _ensure_gnaw_ring() -> void:
 	if _gnaw_ring and is_instance_valid(_gnaw_ring):
 		return
@@ -212,7 +207,6 @@ func _ensure_gnaw_ring() -> void:
 	add_child(ring)
 	_gnaw_ring = ring
 
-## 每帧刷新进度环显示 (由 _physics_process 调用)
 func _update_gnaw_ring() -> void:
 	if _gnaw_ring == null or not is_instance_valid(_gnaw_ring):
 		return
@@ -223,18 +217,13 @@ func _update_gnaw_ring() -> void:
 	else:
 		_gnaw_ring.visible = false
 
-## 清除啃食进度
 func clear_gnaw() -> void:
 	set_meta("gnaw_progress", 0.0)
 	if _gnaw_ring and is_instance_valid(_gnaw_ring):
 		_gnaw_ring.visible = false
 
-
-# ─── 嵌套类：啃食进度环渲染节点 ───────────────────────────
 class GnawRing:
 	extends Node2D
-	## 啃食进度环 — 环形进度条替代血条 (GDD 3.2.2)
-	## 挂载在敌人身上，由 set_progress() 驱动
 
 	var ring_radius: float = 21.0
 	var thickness: float = 4.0
@@ -247,15 +236,48 @@ class GnawRing:
 		queue_redraw()
 
 	func _draw() -> void:
-		# 背景环
 		draw_arc(Vector2.ZERO, ring_radius, 0.0, TAU, 48, bg_color, thickness, true)
-		# 进度环 (从顶部开始顺时针)
 		if _progress > 0.0:
-			var end_angle: float = TAU * _progress - PI / 2.0
+			var end_angle = TAU * _progress - PI / 2.0
 			draw_arc(Vector2.ZERO, ring_radius, -PI / 2.0, end_angle, 48, ring_color, thickness, true)
 
+## 按 elite 类型设置默认体型/血量/颜色
+func _apply_elite_default() -> void:
+	match enemy_type:
+		"elite_tearer":
+			body_radius = 45.0
+			max_hp = 6
+			color = Color(0.85, 0.2, 0.2)
+		"elite_toxin":
+			body_radius = 38.0
+			max_hp = 4
+			color = Color(0.4, 0.85, 0.3)
+		"elite_mirror":
+			body_radius = 30.0
+			max_hp = 3
+			color = Color(0.6, 0.6, 0.95)
+		"elite_fortress":
+			body_radius = 50.0
+			max_hp = 10
+			color = Color(0.7, 0.55, 0.3)
 
-## ─── 精英专属行为分发 (GDD 7.3 / 5.8) ───────────────────────
+## 镜影：被吞噬时召唤 2 个诱饵分身 (GDD 7.3)
+func _spawn_mirrors() -> void:
+	var pool = get_node_or_null("/root/MainGame/ObjectPool")
+	if pool == null:
+		return
+	for i in range(MIRROR_CLONE_COUNT):
+		var offset = Vector2(randf_range(-50, 50), randf_range(-50, 50))
+		var clone_data := {
+			"enemy_type": "decoy",
+			"speed": 60.0,
+			"body_radius": 18.0,
+			"color": Color(0.9, 0.5, 0.7),
+			"capture_value": 0.5,
+		}
+		pool.spawn(global_position + offset, clone_data)
+
+## 精英专属行为分发 (GDD 7.3 / 5.8)
 func _process_elite(delta: float) -> void:
 	if not active:
 		return
@@ -290,42 +312,6 @@ func _update_toxin() -> void:
 	var dist = global_position.distance_to(player_ref.global_position)
 	if dist < POISON_RANGE and player_ref.has_method("apply_poison"):
 		player_ref.apply_poison(TOXIN_DPS, TOXIN_DURATION)
-
-## 镜影：通过对象池召唤 2 个诱饵分身
-func _spawn_mirrors() -> void:
-	var pool = get_node_or_null("/root/MainGame/ObjectPool")
-	if pool == null:
-		return
-	for i in range(MIRROR_CLONE_COUNT):
-		var offset = Vector2(randf_range(-50, 50), randf_range(-50, 50))
-		var clone_data := {
-			"enemy_type": "decoy",
-			"speed": 60.0,
-			"body_radius": 18.0,
-			"color": Color(0.9, 0.5, 0.7),
-			"capture_value": 0.5,
-		}
-		pool.spawn(global_position + offset, clone_data)
-
-## 按 elite 类型设置默认体型/血量/颜色
-func _apply_elite_default() -> void:
-	match enemy_type:
-		"elite_tearer":
-			body_radius = 45.0
-			max_hp = 6
-			color = Color(0.85, 0.2, 0.2)
-		"elite_toxin":
-			body_radius = 38.0
-			max_hp = 4
-			color = Color(0.4, 0.85, 0.3)
-		"elite_mirror":
-			body_radius = 30.0
-			max_hp = 3
-			color = Color(0.6, 0.6, 0.95)
-		"elite_fortress":
-			body_radius = 50.0
-			max_hp = 10
-			color = Color(0.7, 0.55, 0.3)
 
 ## 掉落（GDD 7.3：精英必掉 遗物60% / 传说40%）
 ## ─── v1.2 多大关 Boss 3 阶段 (只狼阶段化 + 黑神话忍杀, §3.3) ───
