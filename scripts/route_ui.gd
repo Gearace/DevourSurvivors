@@ -9,6 +9,8 @@ signal node_chosen(pack: Dictionary)
 var _gm: Node
 var _rg: Node          # RouteGenerator
 var _spawner: Node    # WaveSpawner
+# P1: 营地场景底图
+var _camp_scene: TextureRect
 
 # UI
 var overlay: ColorRect
@@ -45,6 +47,25 @@ func _build_ui() -> void:
 	overlay.grow_vertical = 2
 	overlay.color = Color(0, 0, 0, 0.75)
 	add_child(overlay)
+
+	# P1: 营地场景底图 — 进营地节点(2)时铺在 overlay 上, 给安全屋氛围
+	_camp_scene = TextureRect.new()
+	_camp_scene.name = "CampScene"
+	if ResourceLoader.exists("res://assets/ui/camp/ui_camp_scene.png"):
+		_camp_scene.texture = load("res://assets/ui/camp/ui_camp_scene.png")
+	_camp_scene.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_camp_scene.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_camp_scene.anchor_left = 0.5
+	_camp_scene.anchor_right = 0.5
+	_camp_scene.anchor_top = 0.5
+	_camp_scene.anchor_bottom = 0.5
+	_camp_scene.grow_horizontal = 2
+	_camp_scene.grow_vertical = 2
+	_camp_scene.custom_minimum_size = Vector2(720, 400)
+	_camp_scene.position = Vector2(-360, -360)
+	_camp_scene.modulate = Color(1, 1, 1, 0.35)
+	_camp_scene.visible = false
+	overlay.add_child(_camp_scene)
 
 	panel = Panel.new()
 	panel.name = "Panel"
@@ -115,6 +136,8 @@ func _build_ui() -> void:
 ## options: Array[int] 节点类型；floor: 下一层号
 func show_decision(floor: int, options: Array) -> void:
 	picking_floor = floor
+	# P1: 营地场景底图 — 仅当候选里有营地节点(2)时显示
+	_set_camp_scene_visible(options.has(2))
 	var rg = _get_route_generator()
 	# 副标题：预览后 1-2 层（路线 C）
 	var sub = get_node_or_null("SubLabel")
@@ -227,6 +250,11 @@ func _build_cards(options: Array) -> void:
 		cards.push_back(nt)
 
 ## 预览后 1-2 层（路线 C）
+## P1: 营地场景底图显隐 (候选含营地节点时铺 35% 透明度底图)
+func _set_camp_scene_visible(show: bool) -> void:
+	if _camp_scene and is_instance_valid(_camp_scene):
+		_camp_scene.visible = show
+
 func _preview_next(rg, cur_floor: int) -> String:
 	if rg == null or not rg.has_method("get_run_route"):
 		return ""
