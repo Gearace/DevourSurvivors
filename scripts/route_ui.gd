@@ -19,13 +19,14 @@ var cards: Array = []   # 当前候选卡数据
 var picking_floor: int = -1
 
 # 节点卡面展示映射 (node_type → 名称/图标/难度系数/副标题)
+# v1.2 P0: icon 由 emoji 替换为 64x64 节点图标贴图 (assets/ui/nodes/ui_node_*.png)
 const NODE_DISPLAY: Dictionary = {
-	0: {"name": "普通波", "icon": "⚔", "factor": "×1.0", "sub": "标准敌人编队"},
-	1: {"name": "精英",   "icon": "💀", "factor": "×1.6", "sub": "必掉 遗物/传说"},
-	2: {"name": "营地",   "icon": "🏕", "factor": "×0.3", "sub": "三选一休整"},
-	3: {"name": "商店",   "icon": "🏪", "factor": "×0.5", "sub": "花分数买卡"},
-	4: {"name": "事件",   "icon": "❓", "factor": "×1.2", "sub": "随机剧情二选一"},
-	5: {"name": "章节Boss", "icon": "👑", "factor": "×2.0", "sub": "通关节点"},
+	0: {"name": "普通波", "icon": "ui_node_normal", "factor": "×1.0", "sub": "标准敌人编队"},
+	1: {"name": "精英",   "icon": "ui_node_elite",  "factor": "×1.6", "sub": "必掉 遗物/传说"},
+	2: {"name": "营地",   "icon": "ui_node_camp",   "factor": "×0.3", "sub": "三选一休整"},
+	3: {"name": "商店",   "icon": "ui_node_shop",   "factor": "×0.5", "sub": "花分数买卡"},
+	4: {"name": "事件",   "icon": "ui_node_event",  "factor": "×1.2", "sub": "随机剧情二选一"},
+	5: {"name": "章节Boss", "icon": "ui_node_boss", "factor": "×2.0", "sub": "通关节点"},
 }
 
 func _ready() -> void:
@@ -179,11 +180,20 @@ func _build_cards(options: Array) -> void:
 		vbox.add_theme_constant_override("separation", 10)
 		card_panel.add_child(vbox)
 
-		var icon = Label.new()
-		icon.text = disp.get("icon", "?")
-		icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		icon.add_theme_font_size_override("font_size", 48)
-		vbox.add_child(icon)
+		var icon_name: String = disp.get("icon", "")
+		var icon_path := "res://assets/ui/nodes/" + icon_name + ".png"
+		var icon_rect = TextureRect.new()
+		if ResourceLoader.exists(icon_path):
+			icon_rect.texture = load(icon_path)
+			icon_rect.custom_minimum_size = Vector2(64, 64)
+		else:
+			var fallback := Image.new()
+			fallback.create_empty(1, 1, false, Image.FORMAT_RGBA8)
+			fallback.fill(Color(0.5, 0.5, 0.5, 1.0))
+			icon_rect.texture = ImageTexture.create_from_image(fallback)
+		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		vbox.add_child(icon_rect)
 
 		var nm = Label.new()
 		nm.text = disp.get("name", "?")
