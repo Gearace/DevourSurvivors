@@ -236,6 +236,33 @@ func _create_card_ui(card: Dictionary, idx: int) -> Control:
 
 	var border_color = rarity_colors.get(rarity, Color.WHITE)
 
+	# v1.2 P1c: 技能 motif 图标 + 材质 badge (程序化组合: 卡牌渲染叠加 badge)
+	var icon_area = HBoxContainer.new()
+	icon_area.alignment = BoxContainer.ALIGNMENT_CENTER
+	icon_area.add_theme_constant_override("separation", 4)
+	container.add_child(icon_area)
+
+	var skill_icon_path := _find_skill_icon_path(card)
+	if skill_icon_path != "" and ResourceLoader.exists(skill_icon_path):
+		var skill_icon_rect = TextureRect.new()
+		skill_icon_rect.texture = load(skill_icon_path)
+		skill_icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		skill_icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		skill_icon_rect.custom_minimum_size = Vector2(48, 48)
+		icon_area.add_child(skill_icon_rect)
+
+	var material: String = card.get("material", "")
+	if material != "":
+		var mat_name := _material_to_badge_name(material)
+		var badge_path := "res://assets/ui/cards/badges/icon_mat_" + mat_name + ".png"
+		if ResourceLoader.exists(badge_path):
+			var badge_rect = TextureRect.new()
+			badge_rect.texture = load(badge_path)
+			badge_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			badge_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			badge_rect.custom_minimum_size = Vector2(28, 28)
+			icon_area.add_child(badge_rect)
+
 	var name_label = Label.new()
 	name_label.text = card.get("name", "Unknown")
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -282,6 +309,32 @@ func _create_card_ui(card: Dictionary, idx: int) -> Control:
 	card_panel.set_meta("card_index", idx)
 	card_panel.set_meta("card_data", card)
 	return card_panel
+
+## v1.2 P1c: 卡牌 -> 技能 motif 图标路径
+func _find_skill_icon_path(card: Dictionary) -> String:
+	# 优先: card 自身 id 匹配技能 id
+	var id: String = card.get("id", "")
+	if id != "":
+		var direct := "res://assets/ui/cards/icons/icon_skill_" + id + ".png"
+		if ResourceLoader.exists(direct):
+			return direct
+	# 兼容: skill_id 字段
+	var sid: String = card.get("skill_id", "")
+	if sid != "":
+		var via_skill := "res://assets/ui/cards/icons/icon_skill_" + sid + ".png"
+		if ResourceLoader.exists(via_skill):
+			return via_skill
+	return ""
+
+## 材质中文名 -> badge 文件名
+func _material_to_badge_name(material: String) -> String:
+	match material:
+		"金": return "metal"
+		"木": return "wood"
+		"水": return "water"
+		"火": return "fire"
+		"土": return "earth"
+		_: return ""
 
 func _create_empty_card_slot() -> Control:
 	var card_panel = PanelContainer.new()

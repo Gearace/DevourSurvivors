@@ -16,6 +16,10 @@ var _material_hint: Label
 var _remaining_label: Label
 var _banner: Label
 var _banner_timer: float = 0.0
+# v1.2 P1c: 警报指示器 (合金装备式 0/1/2 级, 读 RouteGenerator.alarm)
+var _alarm_icon: TextureRect
+var _alarm_label: Label
+var _last_alarm_level: int = -1
 
 func _ready() -> void:
 	_gm = get_node_or_null("/root/GameManager")
@@ -77,6 +81,31 @@ func _ready() -> void:
 	if ga:
 		ga.add_child(_material_label)
 
+	# v1.2 P1c: 警报指示器 (右上角, 图标 + 等级文字; 0 级隐藏)
+	_alarm_icon = TextureRect.new()
+	_alarm_icon.name = "AlarmIcon"
+	if ResourceLoader.exists("res://assets/ui/ui_alarm.png"):
+		_alarm_icon.texture = load("res://assets/ui/ui_alarm.png")
+		_alarm_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_alarm_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_alarm_icon.custom_minimum_size = Vector2(32, 32)
+		_alarm_icon.position = Vector2(660, 20)
+		_alarm_icon.visible = false
+		if ga:
+			ga.add_child(_alarm_icon)
+
+	_alarm_label = Label.new()
+	_alarm_label.name = "AlarmLabel"
+	_alarm_label.position = Vector2(640, 54)
+	_alarm_label.add_theme_font_size_override("font_size", 12)
+	_alarm_label.text = ""
+	_alarm_label.self_modulate = Color(1.0, 0.35, 0.35, 1.0)
+	_alarm_label.visible = false
+	_alarm_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_alarm_label.size = Vector2(44, 20)
+	if ga:
+		ga.add_child(_alarm_label)
+
 	# v1.2: 本层通关 4 选 1 提示 (提示成长线)
 	_material_hint = Label.new()
 	_material_hint.name = "MaterialHint"
@@ -109,6 +138,7 @@ func _ready() -> void:
 		ga.add_child(_banner)
 
 func _process(_delta: float) -> void:
+	_update_alarm_display()
 	if _gm == null:
 		return
 	var stats: Dictionary = _gm.player_stats
@@ -182,3 +212,31 @@ func _refresh_materials() -> void:
 			parts.append("%s%d(%s)" % [mat, cnt, tier_name])
 	var text: String = "材质 " + (" ".join(parts) if parts.size() > 0 else "无")
 	_material_label.text = text
+## v1.2 P1c: 警报等级显示 (读 RouteGenerator.alarm.alarm_level, 0 级隐藏)
+func _update_alarm_display() -> void:
+	if _alarm_icon == null or not is_instance_valid(_alarm_icon):
+		return
+	var rg = get_node_or_null("/root/MainGame/RouteGenerator")
+	if rg == null:
+		rg = get_node_or_null("RouteGenerator")
+	if rg == null or rg.get("alarm") == null:
+		_alarm_icon.visible = false
+		_alarm_label.visible = false
+		_last_alarm_level = 0
+		return
+	var alarm_obj = rg.alarm
+	var level: int = int(alarm_obj.get("alarm_level", 0)) if "alarm_level" in alarm_obj else 0
+	if level != _last_alarm_level:
+		_last_alarm_level = level
+		if level <= 0:
+			_alarm_icon.visible = false
+			_alarm_label.visible = false
+		else:
+			_alarm_icon.visible = true
+			_alarm_label.visible = true
+			var lvl_colors: Array = [Color.WHITE, Color(1.0, 0.75, 0.3, 1.0), Color(1.0, 0.4, 0.3, 1.0), Color(1.0, 0.15, 0.15, 1.0)]
+			_alarm_icon.modulate = lvl_colors[mini(level, lvl_colors.size() - 1)]
+			_alarm_label.text = "警报 ×" + str(level)
+
+
+func _process(_delta: float) -> void:
