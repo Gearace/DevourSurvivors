@@ -6,6 +6,9 @@ var _player: CharacterBody2D
 var _joystick: Control
 var _gesture_detector: Object
 var _wave_spawner: Node
+var _bg_sprite: Sprite2D
+var _env_fx_overlay: Sprite2D
+var _last_chapter: int = -1
 
 var _route_ui: CanvasLayer
 var _run_over: CanvasLayer
@@ -18,13 +21,28 @@ var _shake_intensity: float = 0.0
 
 func _ready() -> void:
 	# 动态创建固定场地背景 (720x1280)
-	var bg_sprite = Sprite2D.new()
-	bg_sprite.name = "Background"
-	bg_sprite.texture = load("res://assets/backgrounds/bg_gameplay.png")
-	bg_sprite.centered = true
-	bg_sprite.position = Vector2(360, 640)
-	bg_sprite.z_index = -10 # 确保在最底层渲染
-	add_child(bg_sprite)
+	_bg_sprite = Sprite2D.new()
+	_bg_sprite.name = "Background"
+	_bg_sprite.texture = load("res://assets/backgrounds/bg_gameplay.png")
+	_bg_sprite.centered = true
+	_bg_sprite.position = Vector2(360, 640)
+	_bg_sprite.z_index = -10 # 确保在最底层渲染
+	add_child(_bg_sprite)
+
+	# v1.2 P0: 环境特效覆盖层 (毒雾/熔岩/虚空幕, 随大关切换, 默认隐藏)
+	_env_fx_overlay = Sprite2D.new()
+	_env_fx_overlay.name = "EnvFXOverlay"
+	_env_fx_overlay.centered = true
+	_env_fx_overlay.position = Vector2(360, 640)
+	_env_fx_overlay.z_index = -5
+	_env_fx_overlay.visible = false
+	add_child(_env_fx_overlay)
+
+	# 应用初始大关 (GameManager.chapter 默认 1)
+	var _gm0 = get_node_or_null("/root/GameManager")
+	if _gm0:
+		_last_chapter = int(_gm0.chapter)
+		_apply_chapter_visuals(_last_chapter)
 
 	_player = get_node("Player") as CharacterBody2D
 	_joystick = get_node("JoystickLayer/Joystick") as Control
@@ -90,6 +108,41 @@ func _ready() -> void:
 	_setup_tutorial()
 	print("[MainGame] 场景初始化完成")
 
+## v1.2 P0: 大关 -> 背景 + 环境特效 切换
+func _apply_chapter_visuals(chapter: int) -> void:
+	var bg_path := ""
+	var fx_path := ""
+	match chapter:
+		1:
+			bg_path = "res://assets/backgrounds/bg_ch1_swamp.png"
+			fx_path = "res://assets/sprites/environment/fx_env_poison_mist.png"
+		2:
+			bg_path = "res://assets/backgrounds/bg_ch2_gold.png"
+			fx_path = "res://assets/sprites/environment/fx_env_lava_patch.png"
+		3:
+			bg_path = "res://assets/backgrounds/bg_ch3_void.png"
+			fx_path = "res://assets/sprites/environment/fx_env_void_veil.png"
+		_:
+			return # 4+ 无尽深渊: 不切换, 沿用第 3 关视觉
+	if bg_path != "" and ResourceLoader.exists(bg_path):
+		_bg_sprite.texture = load(bg_path)
+	if fx_path != "":
+		if ResourceLoader.exists(fx_path):
+			_env_fx_overlay.texture = load(fx_path)
+			_env_fx_overlay.modulate = Color(1, 1, 1, 0.4)
+			_env_fx_overlay.visible = true
+		else:
+			_env_fx_overlay.visible = false
+
+func _process_chapter_visuals() -> void:
+	var gm = get_node_or_null("/root/GameManager")
+	if gm == null:
+		return
+	var c: int = int(gm.chapter)
+	if c != _last_chapter:
+		_last_chapter = c
+		_apply_chapter_visuals(c)
+
 ## M5.6 新手前 30 秒引导 (路线化后文案)
 var _tutorial: RefCounted
 var _tutorial_label: Label
@@ -132,6 +185,7 @@ func _on_player_captured(type: String, value: float) -> void:
 		_wave_spawner.on_enemy_captured()
 
 func _process(delta: float) -> void:
+	_process_chapter_visuals()
 	# M5.6 新手引导计时 (前 30 秒 3 条轮播)
 	if _tutorial != null and _tutorial_time < 30.0:
 		_tutorial_time += delta
