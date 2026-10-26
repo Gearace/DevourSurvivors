@@ -55,18 +55,29 @@ func _build_ui() -> void:
 	panel.offset_right = 300
 	panel.offset_top = -260
 	panel.offset_bottom = 260
-	var ps := StyleBoxFlat.new()
-	ps.bg_color = Color(0.07, 0.07, 0.12, 1.0)
-	ps.corner_radius_top_left = 10
-	ps.corner_radius_top_right = 10
-	ps.corner_radius_bottom_left = 10
-	ps.corner_radius_bottom_right = 10
-	ps.border_width_left = 2
-	ps.border_width_top = 2
-	ps.border_width_right = 2
-	ps.border_width_bottom = 2
-	ps.border_color = Color(0.9, 0.3, 0.3, 1.0)
-	panel.add_theme_stylebox_override("panel", ps)
+	# P1: 结算面板底图 (ui_settlement_panel 720x800 羊皮卷风, 缺失时回退纯色)
+	var sp_tex = load("res://assets/ui/panels/ui_settlement_panel.png")
+	if sp_tex:
+		var sp := StyleBoxTexture.new()
+		sp.texture = sp_tex
+		sp.texture_margin_left = 16
+		sp.texture_margin_right = 16
+		sp.texture_margin_top = 16
+		sp.texture_margin_bottom = 16
+		panel.add_theme_stylebox_override("panel", sp)
+	else:
+		var ps := StyleBoxFlat.new()
+		ps.bg_color = Color(0.07, 0.07, 0.12, 1.0)
+		ps.corner_radius_top_left = 10
+		ps.corner_radius_top_right = 10
+		ps.corner_radius_bottom_left = 10
+		ps.corner_radius_bottom_right = 10
+		ps.border_width_left = 2
+		ps.border_width_top = 2
+		ps.border_width_right = 2
+		ps.border_width_bottom = 2
+		ps.border_color = Color(0.9, 0.3, 0.3, 1.0)
+		panel.add_theme_stylebox_override("panel", ps)
 	add_child(panel)
 
 	var vbox := VBoxContainer.new()

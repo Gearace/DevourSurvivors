@@ -20,6 +20,11 @@ var _banner_timer: float = 0.0
 var _alarm_icon: TextureRect
 var _alarm_label: Label
 var _last_alarm_level: int = -1
+# P1: 章节横幅 (ui_chapter_banner 900x200 + 大关中文名, 进新章节闪现 2.5s)
+var _chapter_banner_bg: TextureRect
+var _chapter_banner_label: Label
+var _banner_timer_chapter: float = 0.0
+var _last_chapter: int = -1
 
 func _ready() -> void:
 	_gm = get_node_or_null("/root/GameManager")
@@ -137,8 +142,34 @@ func _ready() -> void:
 	if ga:
 		ga.add_child(_banner)
 
+	# P1: 章节横幅 — ui_chapter_banner 底图 + 大关名, 进新章节闪现
+	_chapter_banner_bg = TextureRect.new()
+	_chapter_banner_bg.name = "ChapterBannerBG"
+	if ResourceLoader.exists("res://assets/ui/ui_chapter_banner.png"):
+		_chapter_banner_bg.texture = load("res://assets/ui/ui_chapter_banner.png")
+	_chapter_banner_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_chapter_banner_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_chapter_banner_bg.position = Vector2(110, 180)
+	_chapter_banner_bg.custom_minimum_size = Vector2(500, 110)
+	_chapter_banner_bg.modulate = Color(1, 1, 1, 0.95)
+	_chapter_banner_bg.visible = false
+	if ga:
+		ga.add_child(_chapter_banner_bg)
+
+	_chapter_banner_label = Label.new()
+	_chapter_banner_label.name = "ChapterBannerLabel"
+	_chapter_banner_label.position = Vector2(110, 210)
+	_chapter_banner_label.size = Vector2(500, 50)
+	_chapter_banner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_chapter_banner_label.add_theme_font_size_override("font_size", 34)
+	_chapter_banner_label.self_modulate = Color(1.0, 0.92, 0.5, 1.0)
+	_chapter_banner_label.visible = false
+	if ga:
+		ga.add_child(_chapter_banner_label)
+
 func _process(_delta: float) -> void:
 	_update_alarm_display()
+	_update_chapter_banner(_delta)
 	if _gm == null:
 		return
 	var stats: Dictionary = _gm.player_stats
@@ -235,8 +266,33 @@ func _update_alarm_display() -> void:
 			_alarm_icon.visible = true
 			_alarm_label.visible = true
 			var lvl_colors: Array = [Color.WHITE, Color(1.0, 0.75, 0.3, 1.0), Color(1.0, 0.4, 0.3, 1.0), Color(1.0, 0.15, 0.15, 1.0)]
-			_alarm_icon.modulate = lvl_colors[mini(level, lvl_colors.size() - 1)]
-			_alarm_label.text = "警报 ×" + str(level)
+		_alarm_icon.modulate = lvl_colors[mini(level, lvl_colors.size() - 1)]
+		_alarm_label.text = "警报 ×" + str(level)
 
+## P1: 章节横幅 — GameManager.chapter 变化时闪现 2.5s (ui_chapter_banner 底图)
+func _update_chapter_banner(delta: float) -> void:
+	if _gm == null:
+		return
+	if _chapter_banner_label == null or not is_instance_valid(_chapter_banner_label):
+		return
+	var ch: int = int(_gm.chapter) if "chapter" in _gm else 1
+	if ch != _last_chapter:
+		_last_chapter = ch
+		var rg = get_node_or_null("/root/MainGame/RouteGenerator")
+		var ch_name := ""
+		if rg and rg.has_method("get_style_name"):
+			ch_name = rg.get_style_name()
+		if ch_name == "":
+			ch_name = "第 " + str(ch) + " 大关"
+		_chapter_banner_label.text = ch_name
+		_chapter_banner_bg.visible = true
+		_chapter_banner_label.visible = true
+		_chapter_banner_bg.modulate = Color(1, 1, 1, 1.0)
+		_banner_timer_chapter = 2.5
+	if _banner_timer_chapter > 0.0:
+		_banner_timer_chapter -= delta
+		if _banner_timer_chapter <= 0.0:
+			_chapter_banner_bg.visible = false
+			_chapter_banner_label.visible = false
 
 func _process(_delta: float) -> void:

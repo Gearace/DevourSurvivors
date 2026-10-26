@@ -9,6 +9,9 @@ var _wave_spawner: Node
 var _bg_sprite: Sprite2D
 var _env_fx_overlay: Sprite2D
 var _last_chapter: int = -1
+# P1: 无尽深渊 (大关 4+) 视觉 — 切换用
+var _abyss_bg_path := "res://assets/backgrounds/bg_ch4_abyss.png"
+var _abyss_fx_path := "res://assets/sprites/environment/fx_env_abyss_mist.png"
 
 var _route_ui: CanvasLayer
 var _run_over: CanvasLayer
@@ -122,8 +125,13 @@ func _apply_chapter_visuals(chapter: int) -> void:
 		3:
 			bg_path = "res://assets/backgrounds/bg_ch3_void.png"
 			fx_path = "res://assets/sprites/environment/fx_env_void_veil.png"
+		4:
+			bg_path = _abyss_bg_path
+			fx_path = _abyss_fx_path
 		_:
-			return # 4+ 无尽深渊: 不切换, 沿用第 3 关视觉
+			# 5+ 无尽循环: 复用深渊视觉
+			bg_path = _abyss_bg_path
+			fx_path = _abyss_fx_path
 	if bg_path != "" and ResourceLoader.exists(bg_path):
 		_bg_sprite.texture = load(bg_path)
 	if fx_path != "":

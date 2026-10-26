@@ -377,11 +377,26 @@ signal decision_needed(floor: int)
 func _request_next_decision(cleared_floor: int) -> void:
 	var next_floor: int = cleared_floor + 1
 	if next_floor > 13:
+		# P1: Boss 通关必掉大关专属遗物 (黑神话法宝 §3.3, 未拾取过才给)
+		_grant_chapter_relic_on_clear()
 		# 章节完成（Boss 后结算 / 无尽模式后续扩展）
 		all_waves_complete.emit()
 		print("[WaveSpawner] 章节完成（13 层清空）")
 		return
 	decision_needed.emit(next_floor)
+
+## P1: 章节通关 — 必掉本大关专属遗物 (GDD 3.3 黑神话法宝: Boss 通关必掉)
+func _grant_chapter_relic_on_clear() -> void:
+	if _gm == null:
+		return
+	var rg = get_node_or_null("../RouteGenerator")
+	if rg == null or not rg.has_method("get_style_relic_id"):
+		return
+	var style_relic: String = rg.get_style_relic_id()
+	if style_relic == "" or _gm.relics.has(style_relic):
+		return
+	_gm.relics.append(style_relic)
+	print("[WaveSpawner] 章节通关必掉专属遗物: ", style_relic)
 
 ## 动态生成超出预设的波次
 func _generate_dynamic_wave(wave_num: int) -> Array:
@@ -531,6 +546,9 @@ func _grant_elite_reward_if_any() -> void:
 	var node_type: int = _gm.current_node_type
 	if node_type != 1:  # 仅精英节点
 		return
+	# P1: 先试大关专属遗物 (黑神话法宝, 命中则必掉)
+	if _grant_style_relic_if_any():
+		return
 	if randf() < 0.6:
 		# 遗物：从遗物池随机 1 个
 		var relic_pool = load("res://scripts/card_database.gd").get_cards_by_rarity("Relic")
@@ -546,6 +564,23 @@ func _grant_elite_reward_if_any() -> void:
 			var pick = leg_pool[randi() % leg_pool.size()]
 			_gm.add_card_to_deck(pick.get("id", ""))
 			print("[WaveSpawner] 精英掉落传说卡: ", pick.get("name", "?"))
+
+## P1: 大关专属遗物 (Boss 通关必掉, 黑神话法宝 §3.3)
+## 精英层 15% 概率命中本大关专属遗物 (未拾取过), 命中直接给
+func _grant_style_relic_if_any() -> bool:
+	if _gm == null:
+		return false
+	if randf() > 0.15:
+		return false
+	var rg = get_node_or_null("../RouteGenerator")
+	if rg == null or not rg.has_method("get_style_relic_id"):
+		return false
+	var style_relic: String = rg.get_style_relic_id()
+	if style_relic == "" or _gm.relics.has(style_relic):
+		return false
+	_gm.relics.append(style_relic)
+	print("[WaveSpawner] 精英命中大关专属遗物: ", style_relic)
+	return true
 
 ## v1.2 P1 警报机制: 精英层清完护卫 → 通知 RouteGenerator.alarm 清零 (§3.5)
 func _notify_alarm_elite_cleared() -> void:
