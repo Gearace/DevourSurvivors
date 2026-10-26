@@ -43,6 +43,17 @@ var _current_direction: Vector2 = Vector2.ZERO
 var _speed_multiplier: float = 1.0
 var _invincible_timer: float = 0.0
 var _body_color: Color = Color(0.3, 0.8, 0.4)
+
+# P1: 表情帧/反馈特效 (素材已就位: munch/hurt/lowhp/shadow + fx_capture_pop)
+var _tx_base: Texture2D
+var _tx_munch: Texture2D
+var _tx_hurt: Texture2D
+var _tx_lowhp: Texture2D
+var _tx_shadow: Texture2D
+var _pop_fx: Sprite2D
+var _munch_timer: float = 0.0
+var _hurt_flash_timer: float = 0.0
+const LOW_HP_THRESHOLD := 0.25   # 低血量比例 (25% 以下换低血量帧)
 var _gm: Node
 var _event_bus: Node
 var _pool: Node2D
@@ -64,6 +75,9 @@ func _ready() -> void:
 	
 	# 初始化身体视觉
 	_update_body_visuals()
+	
+	# P1: 加载表情帧贴图 + 创建阴影/吞噬反馈节点
+	_setup_expression_frames()
 	
 	# 动态创建镜头，使其跟随玩家移动
 	var camera = Camera2D.new()
@@ -89,6 +103,8 @@ func _sync_from_gm() -> void:
 	max_hp = int(stats.get("max_hp", 100))
 
 func _process(delta: float) -> void:
+	# P1: 表情帧/低血量视觉刷新
+	_update_expression_frames(delta)
 	# 无敌计时器
 	if _invincible_timer > 0:
 		_invincible_timer -= delta
@@ -295,6 +311,10 @@ func _execute_capture(enemy) -> void:
 	# 触发信号
 	player_captured_enemy.emit(enemy_type, capture_value)
 	
+	# P1: 吞噬瞬间反馈 (大嘴帧 + pop 粒子)
+	_play_munch()
+	_play_capture_pop()
+
 	# v1.2 P1 警报机制 (合金装备 §3.5): 吞噬累加 streak (受伤才清零)
 	_notify_alarm_capture()
 	
@@ -361,6 +381,9 @@ func take_damage(amount: int) -> void:
 	hp -= amount
 	_invincible_timer = 0.5  # 0.5s 无敌帧
 	
+	# P1: 受伤闪白 + hurt 表情帧
+	_play_hurt_flash()
+	
 	if _event_bus:
 		_event_bus.emit_signal("player_hit", amount)
 	
@@ -420,6 +443,96 @@ func on_player_hit(amount: int) -> void:
 	take_damage(amount)
 
 ## 更新身体视觉
+## P1: 加载表情帧 + 阴影 + 吞噬反馈 (贴图缺失时静默跳过, 不影响游戏)
+func _setup_expression_frames() -> void:
+	_tx_base = load("res://assets/sprites/player/player.png")
+	_tx_munch = load("res://assets/sprites/player/player_munch.png")
+	_tx_hurt = load("res://assets/sprites/player/player_hurt.png")
+	_tx_lowhp = load("res://assets/sprites/player/player_lowhp.png")
+	_tx_shadow = load("res://assets/sprites/player/player_shadow.png")
+
+	if _tx_shadow != null:
+		var shadow := Sprite2D.new()
+		shadow.name = "Shadow"
+		shadow.texture = _tx_shadow
+		shadow.z_index = -1
+		shadow.position = Vector2(0, body_radius * 0.55)
+		shadow.modulate = Color(1, 1, 1, 0.35)
+		add_child(shadow)
+
+	if _gm == null:
+		_gm = get_node_or_null("/root/GameManager")
+
+## P1: 吞噬反馈 — 玩家位置播放 fx_capture_pop
+func _play_capture_pop() -> void:
+	var pop_tex = load("res://assets/sprites/particles/fx_capture_pop.png")
+	if pop_tex == null:
+		return
+	if _pop_fx == null or not is_instance_valid(_pop_fx):
+		_pop_fx = Sprite2D.new()
+		_pop_fx.name = "CapturePop"
+		_pop_fx.z_index = 10
+		add_child(_pop_fx)
+	_pop_fx.texture = pop_tex
+	_pop_fx.global_position = global_position
+	_pop_fx.modulate = Color(1, 1, 1, 1.0)
+	_pop_fx.scale = Vector2.ONE
+	_pop_fx.visible = true
+	var tween := create_tween()
+	tween.tween_property(_pop_fx, "scale", Vector2(1.6, 1.6), 0.25)
+	tween.parallel().tween_property(_pop_fx, "modulate:a", 0.0, 0.25)
+	tween.tween_callback(func():
+		if _pop_fx and is_instance_valid(_pop_fx):
+			_pop_fx.visible = false
+)
+
+## P1: 吞噬瞬间表情 (0.3s 大嘴帧后回 base)
+func _play_munch() -> void:
+	if _tx_munch == null:
+		return
+	var body = get_node_or_null("Body")
+	if body and body is Sprite2D:
+		body.texture = _tx_munch
+	_munch_timer = 0.3
+
+## P1: 受伤闪白 + hurt 表情 (0.25s)
+func _play_hurt_flash() -> void:
+	if _tx_hurt != null:
+		var body = get_node_or_null("Body")
+		if body and body is Sprite2D:
+			body.texture = _tx_hurt
+	_hurt_flash_timer = 0.25
+	modulate = Color(1.4, 1.0, 1.0, 1.0)
+
+## P1: 每帧刷新表情/血量视觉状态
+func _update_expression_frames(delta: float) -> void:
+	var body = get_node_or_null("Body")
+	if body == null or not (body is Sprite2D):
+		return
+	# munch / hurt 定时回 base
+	_munch_timer -= delta
+	_hurt_flash_timer -= delta
+	if _hurt_flash_timer <= 0.0:
+		modulate = Color.WHITE
+	# 低血量持续帧 (优先级: munch > hurt > lowhp > base)
+	var ratio: float = 1.0
+	if _gm != null:
+		var stats: Dictionary = _gm.player_stats
+		var max_hp: int = int(stats.get("max_hp", 100))
+		var cur_hp: int = int(stats.get("current_hp", max_hp))
+		if max_hp > 0:
+			ratio = float(cur_hp) / float(max_hp)
+	if _munch_timer > 0.0:
+		body.texture = _tx_munch
+	elif _hurt_flash_timer > 0.0:
+		body.texture = _tx_hurt
+	elif ratio <= LOW_HP_THRESHOLD and _tx_lowhp != null:
+		body.texture = _tx_lowhp
+	elif _tx_base != null:
+		body.texture = _tx_base
+		# 低血量时身体边缘暗色提示
+		body.modulate = Color(0.75, 0.75, 0.85, 1.0) if ratio <= LOW_HP_THRESHOLD else Color.WHITE
+
 func _update_body_visuals() -> void:
 	var scale: float = body_radius / 20.0
 	scale = clamp(scale, 0.8, 3.0)
@@ -431,7 +544,7 @@ func _update_body_visuals() -> void:
 	var body = get_node_or_null("Body")
 	if body and body is Sprite2D:
 		if body.texture == null:
-			body.texture = load("res://assets/sprites/player/player.png")
+			body.texture = _tx_base if _tx_base != null else load("res://assets/sprites/player/player.png")
 			if body.texture:
 				var tex_size = body.texture.get_size()
 				if tex_size.x > 0:

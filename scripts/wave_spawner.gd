@@ -102,6 +102,47 @@ var _enemy_configs: Dictionary = {
 		"flee_speed_mult": 2.0,
 		"wander_speed_mult": 0.15,
 	},
+	# P1: 独立贴图风格新怪 — enemy_base.textures 有对应键 (toxin_pod/split_body/phase_slash/feint), 走贴图渲染
+	"toxin_pod": {
+		"hp": 2,
+		"speed": 55.0,
+		"body_radius": 16.0,
+		"color": Color(0.4, 0.85, 0.3),  # 毒绿
+		"capture_value": 1.2,
+		"flee_radius": 180.0,
+		"flee_speed_mult": 1.0,
+		"wander_speed_mult": 0.3,
+	},
+	"split_body": {
+		"hp": 1,
+		"speed": 95.0,
+		"body_radius": 14.0,
+		"color": Color(0.7, 0.4, 0.9),  # 紫
+		"capture_value": 0.8,
+		"flee_radius": 220.0,
+		"flee_speed_mult": 1.4,
+		"wander_speed_mult": 0.25,
+	},
+	"phase_slash": {
+		"hp": 1,
+		"speed": 160.0,
+		"body_radius": 12.0,
+		"color": Color(0.95, 0.7, 0.2),  # 金
+		"capture_value": 0.8,
+		"flee_radius": 260.0,
+		"flee_speed_mult": 1.6,
+		"wander_speed_mult": 0.2,
+	},
+	"feint": {
+		"hp": 1,
+		"speed": 70.0,
+		"body_radius": 20.0,
+		"color": Color(0.5, 0.5, 0.95),  # 虚空紫
+		"capture_value": 0.5,
+		"flee_radius": 300.0,
+		"flee_speed_mult": 2.0,
+		"wander_speed_mult": 0.15,
+	},
 	# ─── v1.2 多大关: 专属 Boss (黑神话法宝, 每大关不同) ───
 	"boss_swamp": {
 		"hp": 25,

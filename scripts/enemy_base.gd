@@ -49,6 +49,11 @@ const BOSS_WEAKNESS_GNAW_MULT := 1.5
 const BOSS_ENRAGE_SPEED_MULT := 1.5
 var _boss_skill_timer: float = 0.0
 var _boss_skill_cd: float = 4.0   # 技能 CD (随阶段缩短)
+# P0/P1: Boss 阶段特效贴图 (弱点环/狂暴光环/忍杀金环/撕裂波, 素材已就位)
+var _fx_weakpoint: Sprite2D = null
+var _fx_enraged: Sprite2D = null
+var _fx_kill_window: Sprite2D = null
+var _fx_tear_wave: Sprite2D = null
 
 var textures: Dictionary = {
 	"basic": preload("res://assets/sprites/enemies/enemy_basic.png"),
@@ -64,7 +69,12 @@ var textures: Dictionary = {
 	"elite_fortress": preload("res://assets/sprites/enemies/enemy_elite_fortress.png"),
 	"boss_ch1":       preload("res://assets/sprites/enemies/enemy_boss_ch1.png"),
 	"boss_v2_void":   preload("res://assets/sprites/enemies/enemy_boss_v2_void.png"),
-	"boss_v3_abyss":  preload("res://assets/sprites/enemies/enemy_boss_v3_abyss.png")
+	"boss_v3_abyss":  preload("res://assets/sprites/enemies/enemy_boss_v3_abyss.png"),
+	// P1 风格新怪 (关卡设计 §3.0 风格差异表)
+	"toxin_pod":    preload("res://assets/sprites/enemies/enemy_toxin_pod.png"),
+	"split_body":   preload("res://assets/sprites/enemies/enemy_split_body.png"),
+	"phase_slash":  preload("res://assets/sprites/enemies/enemy_phase_slash.png"),
+	"feint":        preload("res://assets/sprites/enemies/enemy_feint.png")
 }
 
 # ─── 信号 ─────────────────────────────────────────
@@ -174,6 +184,8 @@ func _update_visuals() -> void:
 		body.position = Vector2(-body_radius, -body_radius)
 		add_child(body)
 	_ensure_gnaw_ring()
+	# P1: Boss 阶段特效节点 (按需惰性创建)
+	_ensure_boss_fx()
 
 ## 设置玩家引用
 func set_player_reference(player: Node2D) -> void:
@@ -241,6 +253,75 @@ class GnawRing:
 			var end_angle = TAU * _progress - PI / 2.0
 			draw_arc(Vector2.ZERO, ring_radius, -PI / 2.0, end_angle, 48, ring_color, thickness, true)
 
+## P1: Boss 阶段特效 — 惰性创建 弱点环/狂暴光环/忍杀金环/撕裂波 4 个 Sprite
+func _ensure_boss_fx() -> void:
+	if _is_boss_type():
+		if _fx_weakpoint == null:
+			_fx_weakpoint = Sprite2D.new()
+			_fx_weakpoint.name = "FXWeakpoint"
+			_fx_weakpoint.texture = load("res://assets/sprites/skills/fx_boss_weakpoint.png")
+			_fx_weakpoint.z_index = 6
+			_fx_weakpoint.visible = false
+			add_child(_fx_weakpoint)
+		if _fx_enraged == null:
+			_fx_enraged = Sprite2D.new()
+			_fx_enraged.name = "FXEnraged"
+			_fx_enraged.texture = load("res://assets/sprites/skills/fx_boss_enraged.png")
+			_fx_enraged.z_index = 5
+			_fx_enraged.modulate = Color(1, 1, 1, 0.55)
+			_fx_enraged.visible = false
+			add_child(_fx_enraged)
+		if _fx_kill_window == null:
+			_fx_kill_window = Sprite2D.new()
+			_fx_kill_window.name = "FXKillWindow"
+			_fx_kill_window.texture = load("res://assets/sprites/skills/fx_kill_window.png")
+			_fx_kill_window.z_index = 7
+			_fx_kill_window.visible = false
+			add_child(_fx_kill_window)
+	if enemy_type == "elite_tearer" and _fx_tear_wave == null:
+		_fx_tear_wave = Sprite2D.new()
+		_fx_tear_wave.name = "FXTearWave"
+		_fx_tear_wave.texture = load("res://assets/sprites/skills/fx_tear_wave.png")
+		_fx_tear_wave.z_index = 6
+		_fx_tear_wave.visible = false
+		add_child(_fx_tear_wave)
+
+## P1: 每帧刷新 Boss 特效可见性 (弱点/狂暴/忍杀窗口)
+func _update_boss_fx() -> void:
+	if not _is_boss_type():
+		return
+	if _fx_weakpoint and boss_weakness_open:
+		_fx_weakpoint.visible = true
+		_fx_weakpoint.modulate = Color(1, 1, 1, 0.6 + 0.4 * abs(sin(Time.get_ticks_msec() * 0.006)))
+	elif _fx_weakpoint:
+		_fx_weakpoint.visible = false
+	if _fx_enraged and boss_enraged:
+		_fx_enraged.visible = true
+	elif _fx_enraged:
+		_fx_enraged.visible = false
+	if _fx_kill_window:
+		_fx_kill_window.visible = boss_kill_window > 0.0
+
+## P1: 撕裂者撕裂波 — 扇形冲击动画 (向玩家方向, 0.5s 淡出)
+func _animate_tear_wave() -> void:
+	if _fx_tear_wave == null or not is_instance_valid(_fx_tear_wave):
+		return
+	if player_ref != null:
+		_fx_tear_wave.rotation = global_position.angle_to(player_ref.global_position)
+	_fx_tear_wave.position = Vector2(150, 0)
+	_fx_tear_wave.modulate = Color(1, 1, 1, 1.0)
+	_fx_tear_wave.visible = true
+	var tween = create_tween()
+	tween.tween_property(_fx_tear_wave, "modulate:a", 0.0, 0.5)
+	tween.tween_callback(func(): _fx_tear_wave.visible = false)
+
+## P1: 重置 Boss 特效可见性 (对象池复用)
+func _reset_boss_fx() -> void:
+	if _fx_weakpoint: _fx_weakpoint.visible = false
+	if _fx_enraged: _fx_enraged.visible = false
+	if _fx_kill_window: _fx_kill_window.visible = false
+	if _fx_tear_wave: _fx_tear_wave.visible = false
+
 ## 按 elite 类型设置默认体型/血量/颜色
 func _apply_elite_default() -> void:
 	match enemy_type:
@@ -301,6 +382,7 @@ func _fire_tear_wave() -> void:
 	if dist <= 300.0:
 		if player_ref.has_method("take_damage"):
 			player_ref.take_damage(SPLIT_WAVE_DMG)
+		_animate_tear_wave()
 		var bus = get_node_or_null("/root/MainGame/EventBus")
 		if bus and bus.has_signal("screen_shake"):
 			bus.emit_signal("screen_shake", 0.2, 6.0)
@@ -350,6 +432,8 @@ func _process_boss(delta: float) -> void:
 	if boss_kill_window > 0.0:
 		mult = BOSS_KILL_GNAW_MULT
 	set_meta("gnaw_mult", mult)
+	# P1: 刷新 Boss 阶段特效可见性
+	_update_boss_fx()
 
 ## 是否 Boss 类型 (v1.2 多大关 boss_swamp/gold/void/abyss + 基础 boss)
 func _is_boss_type() -> bool:
@@ -398,6 +482,7 @@ func _reset_boss_state() -> void:
 	_boss_skill_timer = 0.0
 	_boss_skill_cd = 4.0
 	set_meta("gnaw_mult", 1.0)
+	_reset_boss_fx()
 
 func roll_elite_reward() -> Dictionary:
 	if randf() < 0.6:
