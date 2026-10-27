@@ -256,7 +256,8 @@ func _update_alarm_display() -> void:
 		_last_alarm_level = 0
 		return
 	var alarm_obj = rg.alarm
-	var level: int = int(alarm_obj.get("alarm_level", 0)) if "alarm_level" in alarm_obj else 0
+	# alarm 是 RefCounted 实例 (alarm_system), 没有 Object.get 的默认值重载 — 直接读字段
+	var level: int = int(alarm_obj.alarm_level) if "alarm_level" in alarm_obj else 0
 	if level != _last_alarm_level:
 		_last_alarm_level = level
 		if level <= 0:
