@@ -62,7 +62,7 @@ var textures: Dictionary = {
 	"split": preload("res://assets/sprites/enemies/enemy_split.png"),
 	"decoy": preload("res://assets/sprites/enemies/enemy_decoy.png"),
 	"boss": preload("res://assets/sprites/enemies/enemy_boss.png"),
-	// v1.2 多大关: 精英 4 变体 (GDD 7.3) + 章节 Boss 3 形态 (GDD 7.5)
+	# v1.2 多大关: 精英 4 变体 (GDD 7.3) + 章节 Boss 3 形态 (GDD 7.5)
 	"elite_tearer":   preload("res://assets/sprites/enemies/enemy_elite_tearer.png"),
 	"elite_toxin":    preload("res://assets/sprites/enemies/enemy_elite_toxin.png"),
 	"elite_mirror":   preload("res://assets/sprites/enemies/enemy_elite_mirror.png"),
@@ -70,7 +70,7 @@ var textures: Dictionary = {
 	"boss_ch1":       preload("res://assets/sprites/enemies/enemy_boss_ch1.png"),
 	"boss_v2_void":   preload("res://assets/sprites/enemies/enemy_boss_v2_void.png"),
 	"boss_v3_abyss":  preload("res://assets/sprites/enemies/enemy_boss_v3_abyss.png"),
-	// P1 风格新怪 (关卡设计 §3.0 风格差异表)
+	# P1 风格新怪 (关卡设计 §3.0 风格差异表)
 	"toxin_pod":    preload("res://assets/sprites/enemies/enemy_toxin_pod.png"),
 	"split_body":   preload("res://assets/sprites/enemies/enemy_split_body.png"),
 	"phase_slash":  preload("res://assets/sprites/enemies/enemy_phase_slash.png"),

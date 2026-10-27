@@ -266,8 +266,8 @@ func _update_alarm_display() -> void:
 			_alarm_icon.visible = true
 			_alarm_label.visible = true
 			var lvl_colors: Array = [Color.WHITE, Color(1.0, 0.75, 0.3, 1.0), Color(1.0, 0.4, 0.3, 1.0), Color(1.0, 0.15, 0.15, 1.0)]
-		_alarm_icon.modulate = lvl_colors[mini(level, lvl_colors.size() - 1)]
-		_alarm_label.text = "警报 ×" + str(level)
+			_alarm_icon.modulate = lvl_colors[mini(level, lvl_colors.size() - 1)]
+			_alarm_label.text = "警报 ×" + str(level)
 
 ## P1: 章节横幅 — GameManager.chapter 变化时闪现 2.5s (ui_chapter_banner 底图)
 func _update_chapter_banner(delta: float) -> void:
@@ -295,4 +295,3 @@ func _update_chapter_banner(delta: float) -> void:
 			_chapter_banner_bg.visible = false
 			_chapter_banner_label.visible = false
 
-func _process(_delta: float) -> void:
