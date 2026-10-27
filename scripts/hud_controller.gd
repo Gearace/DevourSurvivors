@@ -295,4 +295,3 @@ func _update_chapter_banner(delta: float) -> void:
 		if _banner_timer_chapter <= 0.0:
 			_chapter_banner_bg.visible = false
 			_chapter_banner_label.visible = false
-
