@@ -34,7 +34,7 @@ func _physics_process(delta: float) -> void:
 		
 		1:  # 逃跑模式
 			_handle_flee(delta, base_speed, dir, enemy)
-			if dist > enemy.flee_radius * 1.5:
+			if dist > enemy.flee_radius * 1.15:  # M7: 缩短逃离滞后, 避免怪被甩到屏外追不上
 				_state = 0
 				enemy.is_fleeing = false
 				enemy.trigger_fear(0.0)

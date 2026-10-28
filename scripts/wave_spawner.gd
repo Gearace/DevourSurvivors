@@ -267,7 +267,7 @@ func start_wave(wave_number: int) -> void:
 		# 超出预设波次，动态生成
 		wave_entries = _generate_dynamic_wave(wave_number)
 	
-	# 构建生成队列
+	# 构建生成队列 (M7: 怪分左侧 70% / 顶部 20% / 底部 10% 出生, 远离右下角玩家起点, 避免出生即贴脸狂逃)
 	_spawn_queue.clear()
 	for entry in wave_entries:
 		var config = _enemy_configs.get(entry.get("type", "basic"), _enemy_configs["basic"])
@@ -449,20 +449,18 @@ func _spawn_next_enemy() -> void:
 	if enemy:
 		pass  # 实际吞噬计数在 enemy_captured 信号中处理
 
-## 获取屏幕边缘随机位置
+## M7: 怪的出生侧改为 左 70% / 顶 20% / 底 10% — 远离右下角玩家起点 (360,640→右下角),
+## 不再从"贴脸"侧出生, 避免小怪出生即狂逃 / 玩家刚开局就被贴脸的体验
 func _get_random_edge_position() -> Vector2:
-	var edge: int = randi() % 4  # 0=top, 1=right, 2=bottom, 3=left
-	var margin: float = 10.0
-	
-	match edge:
-		0:  # 上边缘
-			return Vector2(randf() * 720.0, margin)
-		1:  # 右边缘
-			return Vector2(720.0 - margin, randf() * 1280.0)
-		2:  # 下边缘
-			return Vector2(randf() * 720.0, 1280.0 - margin)
-		3:  # 左边缘
+	var side: int = randi() % 10
+	var margin: float = 12.0
+	match side:
+		0, 1, 2, 3, 4, 5, 6:  # 左边缘
 			return Vector2(margin, randf() * 1280.0)
+		7, 8:  # 上边缘
+			return Vector2(margin, margin)
+		_:  # 下边缘
+			return Vector2(margin, 1280.0 - margin)
 	
 	return Vector2.ZERO
 

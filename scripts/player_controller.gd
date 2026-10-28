@@ -493,7 +493,7 @@ func _play_munch() -> void:
 	var body = get_node_or_null("Body")
 	if body and body is Sprite2D:
 		body.texture = _tx_munch
-	_munch_timer = 0.3
+	_munch_timer = 0.5
 
 ## P1: 受伤闪白 + hurt 表情 (0.25s)
 func _play_hurt_flash() -> void:
