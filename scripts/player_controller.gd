@@ -53,6 +53,8 @@ var _tx_shadow: Texture2D
 var _pop_fx: Sprite2D
 var _munch_timer: float = 0.0
 var _hurt_flash_timer: float = 0.0
+## M8-A: 程序化大嘴 — 由独立 Mouth 节点绘制 (见 scripts/player_mouth.gd)
+var _mouth: Node2D = null
 const LOW_HP_THRESHOLD := 0.25   # 低血量比例 (25% 以下换低血量帧)
 var _gm: Node
 var _event_bus: Node
@@ -101,6 +103,9 @@ func _sync_from_gm() -> void:
 	body_radius = _table.body_radius_for_mutation(_gm.mutation_card_count)
 	capture_radius = body_radius + 10.0
 	max_hp = int(stats.get("max_hp", 100))
+	# M8-A: 嘴部随体型同步
+	if _mouth != null and _mouth.has_method("set_radius"):
+		_mouth.set_radius(body_radius)
 
 func _process(delta: float) -> void:
 	# P1: 表情帧/低血量视觉刷新
@@ -122,7 +127,6 @@ func _process(delta: float) -> void:
 	# 平滑移动
 	velocity = _current_direction * base_speed * _speed_multiplier
 	move_and_slide()
-	
 	# 边界限制 (固定 720x1280 场地，保留半半径的安全范围以免穿帮)
 	global_position.x = clamp(global_position.x, body_radius, 720.0 - body_radius)
 	global_position.y = clamp(global_position.y, body_radius, 1280.0 - body_radius)
@@ -460,6 +464,15 @@ func _setup_expression_frames() -> void:
 		shadow.modulate = Color(1, 1, 1, 0.35)
 		add_child(shadow)
 
+	# M8-A: 程序化大嘴 — 挂在 Player 下, 在史莱姆本体下方画可开合嘴部
+	if _mouth == null:
+		_mouth = load("res://scripts/player_mouth.gd").new()
+		_mouth.name = "Mouth"
+		_mouth.z_index = 2
+		_mouth.position = Vector2(0, 0)
+		_mouth.set_radius(body_radius)
+		add_child(_mouth)
+
 	if _gm == null:
 		_gm = get_node_or_null("/root/GameManager")
 
@@ -494,6 +507,9 @@ func _play_munch() -> void:
 	if body and body is Sprite2D:
 		body.texture = _tx_munch
 	_munch_timer = 0.5
+	# M8-A: 触发程序化大嘴张合
+	if _mouth != null and _mouth.has_method("trigger_munch"):
+		_mouth.trigger_munch(0.18)
 
 ## P1: 受伤闪白 + hurt 表情 (0.25s)
 func _play_hurt_flash() -> void:
